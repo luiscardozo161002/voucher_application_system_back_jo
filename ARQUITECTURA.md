@@ -195,6 +195,11 @@ workers   (1) ──── (N) request_items
 | V2 | Elimina el admin placeholder del SQL (el DataSeeder lo crea correctamente) |
 | V3 | Agrega `version` (optimistic locking) y `updated_at` a entidades mutables |
 | V4 | Agrega `token_version` a `users` y tabla `refresh_tokens` |
+| V5 | Tablas `idempotency_keys` y `request_documents` (PDF versioning) |
+
+**Datos del legado (no son migraciones Flyway):**  
+Los archivos en `src/main/resources/db/legacy/` los ejecuta `LegacyDataSeeder` al primer arranque,  
+después de que `DataSeeder` crea el usuario admin. Detección: si hay ≤ 10 proveedores → importa.
 
 > **Regla:** nunca modificar una migración ya aplicada en producción. Crear V_N+1.
 

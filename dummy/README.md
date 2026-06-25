@@ -1,50 +1,43 @@
-# Datos de prueba y migración del legado
+# Datos del sistema legado
 
-Esta carpeta contiene los scripts SQL extraídos del sistema original (VB6/Access) y datos de ejemplo para desarrollo.
+Esta carpeta es de **referencia y documentación**.
+
+Los scripts SQL que aquí se describen están copiados en  
+`src/main/resources/db/legacy/` y **se ejecutan automáticamente** al iniciar  
+la aplicación por primera vez mediante `LegacyDataSeeder`.
 
 ---
 
-## Carpeta `seeds/`
+## Carga automática al arrancar
 
-Scripts de migración del sistema legacy. Se aplican **una sola vez** sobre una BD limpia con las migraciones Flyway ya aplicadas.
+El componente `LegacyDataSeeder` (`config/LegacyDataSeeder.java`) detecta si los  
+datos del legado ya fueron importados contando los proveedores:
 
-| Archivo | Descripción | Registros |
-|---|---|---|
-| `01_proveedores_legado.sql` | Catálogo de proveedores (tabla `Doctor` del Access) | 154 |
-| `02_trabajadores_legado.sql` | Catálogo de trabajadores (tabla `Trabajador`) | 164 |
-| `03_solicitudes_legado.sql` | Solicitudes históricas (tabla `Movimiento`) | 700 |
+- **Si hay ≤ 10 proveedores** → importa los tres archivos en orden.
+- **Si hay > 10 proveedores** → asume que ya están cargados y omite silenciosamente.
 
-### Cómo aplicar
-
-```sql
--- 1. Conectarse a la base de datos
--- En pgAdmin: abrir Query Tool sobre la BD "solicitudes"
--- O por consola:
--- psql -U postgres -d solicitudes
-
--- 2. Aplicar en orden
-\i dummy/seeds/01_proveedores_legado.sql
-\i dummy/seeds/02_trabajadores_legado.sql
-\i dummy/seeds/03_solicitudes_legado.sql
+```
+mvn spring-boot:run
 ```
 
-> **Importante:** Los renglones de detalle (tabla `Detalle` del Access) no se migran en esta versión porque las columnas heredadas (`Diagnostico`, `LAB`, `RX`) corresponden a otro dominio y requieren validación con el negocio antes de mapearlas a `request_items`.
+```
+[Order 1] DataSeeder        → crea usuarios, 3 proveedores y 3 trabajadores de prueba
+[Order 2] LegacyDataSeeder  → importa 154 proveedores, 164 trabajadores, 700 solicitudes
+```
 
 ---
 
-## Notas de la migración
+## Scripts SQL (referencia)
 
-- Los folios históricos se conservan intactos (`NroDocumento` → `folio`).
-- La secuencia `folio_seq` se avanza automáticamente al final de `03_solicitudes_legado.sql` para no colisionar con el último folio migrado.
-- Los proveedores se identifican por `IdDoctor` (convertido a `code` en mayúsculas).
-- Las solicitudes sin proveedor válido se asignan al primer proveedor disponible.
-- Todas las solicitudes migradas quedan en estado `EMITIDA` con la fecha original de captura.
-- El campo `created_by` se asigna al usuario `admin` del sistema nuevo.
+Los archivos originales generados desde `Solicitudes.mdb` están en:
 
----
+```
+src/main/resources/db/legacy/
+├── 01_proveedores.sql   ← 154 proveedores (Doctor → suppliers)
+├── 02_trabajadores.sql  ← 164 trabajadores (Trabajador → workers)
+└── 03_solicitudes.sql   ← ~700 solicitudes (Movimiento → requests)
+```
 
-## Fuente
-
-Base de datos original: `SOLICITUDES/Solicitudes.mdb`
-Extraída con: PowerShell + Microsoft.ACE.OLEDB.12.0
-Fecha de extracción: 2026-06-24
+Fuente original: `SOLICITUDES/Solicitudes.mdb`  
+Extraída con: PowerShell + Microsoft.ACE.OLEDB.12.0  
+Fecha: 2026-06-24

@@ -167,20 +167,18 @@ Copiar `.env.example` a `.env` y ajustar para producción.
 
 ## Migración de datos del sistema legado
 
-Los scripts SQL generados desde `Solicitudes.mdb` están en `dummy/seeds/`.  
-Aplicar **una sola vez** después del primer arranque exitoso:
+Los datos históricos de `Solicitudes.mdb` se cargan **automáticamente** en el primer arranque.  
+No se requiere ninguna acción manual.
 
-```bash
-# Opción A — psql desde consola
-psql -U postgres -d solicitudes -f dummy/seeds/01_proveedores_legado.sql
-psql -U postgres -d solicitudes -f dummy/seeds/02_trabajadores_legado.sql
-psql -U postgres -d solicitudes -f dummy/seeds/03_solicitudes_legado.sql
+```
+[Arranque 1]  LegacyDataSeeder detecta 0 proveedores → importa:
+              154 proveedores + 164 trabajadores + 700 solicitudes históricas
 
-# Opción B — pgAdmin
-# Abrir Query Tool → copiar y ejecutar cada archivo en orden
+[Arranque 2+] LegacyDataSeeder detecta >10 proveedores → omite silenciosamente
 ```
 
-> El script `03_solicitudes_legado.sql` actualiza automáticamente la secuencia de folios para continuar después del último registro histórico.
+Los scripts SQL de origen están en `src/main/resources/db/legacy/` y en `dummy/` como referencia.  
+Ver `dummy/README.md` para más detalles.
 
 ---
 
