@@ -7,10 +7,8 @@ import java.util.UUID;
 
 public record LoginResponse(
         String token,
-        String refreshToken,
         String tokenType,
         long expiresIn,
-        long refreshExpiresIn,
         UserInfo user
 ) {
     public record UserInfo(

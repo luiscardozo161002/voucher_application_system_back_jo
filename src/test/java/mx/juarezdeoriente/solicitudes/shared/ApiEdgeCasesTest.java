@@ -181,24 +181,22 @@ class ApiEdgeCasesTest {
     class Refresh {
 
         @Test
-        @DisplayName("Body vacío → 400")
-        void body_vacio_retorna_400() throws Exception {
-            mockMvc.perform(post("/api/v1/auth/refresh")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{}"))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.details[0]")
-                            .value("El refresh token es obligatorio"));
+        @DisplayName("Sin cookie de refresh → 422 sin sesion activa")
+        void sin_cookie_retorna_422() throws Exception {
+            // El refresh token ahora viaja como HttpOnly cookie, no en el body.
+            // Sin cookie → DomainException "No hay sesion activa"
+            mockMvc.perform(post("/api/v1/auth/refresh"))
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.error").value(containsString("sesion")));
         }
 
         @Test
-        @DisplayName("Refresh token inválido → 422 con mensaje claro")
+        @DisplayName("Cookie con refresh token inválido → 422 con mensaje claro")
         void refresh_token_invalido_retorna_error() throws Exception {
             when(jwtService.isValid("token.malo")).thenReturn(false);
 
             mockMvc.perform(post("/api/v1/auth/refresh")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"refreshToken\":\"token.malo\"}"))
+                            .cookie(new jakarta.servlet.http.Cookie("refresh_token", "token.malo")))
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(jsonPath("$.error").value(containsString("invalido")));
         }

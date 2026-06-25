@@ -69,6 +69,12 @@ app:
     refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
     issuer: ${JWT_ISSUER:solicitudes-api}
     audience: ${JWT_AUDIENCE:solicitudes-client}
+  refresh-cookie:
+    name: refresh_token
+    same-site: ${COOKIE_SAME_SITE:Strict}
+    secure: ${COOKIE_SECURE:true}
+    path: /api/v1/auth
+
   security:
     max-login-attempts: 5
     lockout-minutes: 15

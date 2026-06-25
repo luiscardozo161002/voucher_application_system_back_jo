@@ -1,5 +1,6 @@
 package mx.juarezdeoriente.solicitudes.auth.infrastructure.web;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import mx.juarezdeoriente.solicitudes.auth.application.port.in.ChangePasswordUseCase;
 import mx.juarezdeoriente.solicitudes.auth.application.port.in.GetUsersUseCase;
@@ -11,10 +12,12 @@ import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.RefreshTokenS
 import mx.juarezdeoriente.solicitudes.auth.infrastructure.web.dto.ChangePasswordRequest;
 import mx.juarezdeoriente.solicitudes.auth.infrastructure.web.dto.LoginRequest;
 import mx.juarezdeoriente.solicitudes.auth.infrastructure.web.dto.LoginResponse;
-import mx.juarezdeoriente.solicitudes.auth.infrastructure.web.dto.RefreshRequest;
 import mx.juarezdeoriente.solicitudes.auth.infrastructure.web.dto.UserResponse;
 import mx.juarezdeoriente.solicitudes.shared.domain.exception.DomainException;
 import mx.juarezdeoriente.solicitudes.shared.infrastructure.web.ApiResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,6 +25,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
 import java.util.UUID;
 
 @RestController
@@ -34,6 +38,18 @@ public class AuthController {
     private final ChangePasswordUseCase  changePasswordUseCase;
     private final GetUsersUseCase        getUsersUseCase;
     private final AppUserDetailsService  userDetailsService;
+
+    @Value("${app.refresh-cookie.name:refresh_token}")
+    private String cookieName;
+
+    @Value("${app.refresh-cookie.same-site:Strict}")
+    private String sameSite;
+
+    @Value("${app.refresh-cookie.secure:true}")
+    private boolean secureCookie;
+
+    @Value("${app.refresh-cookie.path:/api/v1/auth}")
+    private String cookiePath;
 
     public AuthController(AuthenticationManager authenticationManager,
                           JwtService jwtService,
@@ -50,7 +66,10 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<ApiResponse<LoginResponse>> login(
+            @Valid @RequestBody LoginRequest request,
+            HttpServletResponse response) {
+
         Authentication auth = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.username(), request.password())
         );
@@ -61,41 +80,52 @@ public class AuthController {
 
         refreshTokenService.store(principal.getId(), refreshToken);
 
+        // Refresh token en cookie HttpOnly: invisible al JavaScript, protegido de XSS
+        setRefreshCookie(response, refreshToken);
+
         User user = getUsersUseCase.findById(principal.getId());
 
         return ResponseEntity.ok(ApiResponse.ok(new LoginResponse(
-                accessToken, refreshToken, "Bearer",
+                accessToken,
+                "Bearer",
                 jwtService.getExpirationMs() / 1000,
-                jwtService.getRefreshExpirationMs() / 1000,
                 new LoginResponse.UserInfo(user.getId(), user.getUsername(),
                         user.getDisplayName(), user.getRoles())
         )));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<LoginResponse>> refresh(@Valid @RequestBody RefreshRequest request) {
-        String incomingRefresh = request.refreshToken();
+    public ResponseEntity<ApiResponse<LoginResponse>> refresh(
+            @CookieValue(name = "refresh_token", required = false) String refreshToken,
+            HttpServletResponse response) {
 
-        if (!jwtService.isValid(incomingRefresh) || !jwtService.isRefreshToken(incomingRefresh)) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new DomainException("No hay sesion activa. Inicia sesion nuevamente.");
+        }
+
+        if (!jwtService.isValid(refreshToken) || !jwtService.isRefreshToken(refreshToken)) {
+            clearRefreshCookie(response);
             throw new DomainException(
                     "El refresh token es invalido o ha expirado. Inicia sesion nuevamente.");
         }
 
-        UUID userId = refreshTokenService.validateAndRotate(incomingRefresh);
+        UUID userId = refreshTokenService.validateAndRotate(refreshToken);
 
         AppUserDetails principal = (AppUserDetails)
-                userDetailsService.loadUserByUsername(jwtService.extractUsername(incomingRefresh));
+                userDetailsService.loadUserByUsername(jwtService.extractUsername(refreshToken));
 
         String newAccessToken  = jwtService.generateToken(principal);
         String newRefreshToken = jwtService.generateRefreshToken(principal);
         refreshTokenService.store(userId, newRefreshToken);
 
+        setRefreshCookie(response, newRefreshToken);
+
         User user = getUsersUseCase.findById(userId);
 
         return ResponseEntity.ok(ApiResponse.ok(new LoginResponse(
-                newAccessToken, newRefreshToken, "Bearer",
+                newAccessToken,
+                "Bearer",
                 jwtService.getExpirationMs() / 1000,
-                jwtService.getRefreshExpirationMs() / 1000,
                 new LoginResponse.UserInfo(user.getId(), user.getUsername(),
                         user.getDisplayName(), user.getRoles())
         )));
@@ -103,10 +133,13 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(
-            @AuthenticationPrincipal AppUserDetails principal) {
+            @AuthenticationPrincipal AppUserDetails principal,
+            HttpServletResponse response) {
+
         if (principal != null) {
             refreshTokenService.revokeAll(principal.getId());
         }
+        clearRefreshCookie(response);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
@@ -120,12 +153,38 @@ public class AuthController {
     @PostMapping("/change-password")
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @Valid @RequestBody ChangePasswordRequest request,
-            @AuthenticationPrincipal AppUserDetails principal) {
+            @AuthenticationPrincipal AppUserDetails principal,
+            HttpServletResponse response) {
 
         changePasswordUseCase.execute(new ChangePasswordUseCase.Command(
                 principal.getId(), request.currentPassword(), request.newPassword()
         ));
         refreshTokenService.revokeAll(principal.getId());
+        clearRefreshCookie(response);
         return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    // --- Cookie helpers ---
+
+    private void setRefreshCookie(HttpServletResponse response, String token) {
+        ResponseCookie cookie = ResponseCookie.from(cookieName, token)
+                .httpOnly(true)
+                .secure(secureCookie)
+                .sameSite(sameSite)
+                .path(cookiePath)
+                .maxAge(Duration.ofMillis(jwtService.getRefreshExpirationMs()))
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
+    private void clearRefreshCookie(HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from(cookieName, "")
+                .httpOnly(true)
+                .secure(secureCookie)
+                .sameSite(sameSite)
+                .path(cookiePath)
+                .maxAge(0)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 }

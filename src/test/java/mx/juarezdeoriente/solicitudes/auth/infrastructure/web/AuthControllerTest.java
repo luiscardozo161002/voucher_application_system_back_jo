@@ -66,7 +66,10 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.token").value("token.jwt.aqui"))
                 .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.data.user.username").value("admin"));
+                .andExpect(jsonPath("$.data.user.username").value("admin"))
+                // refreshToken ya NO aparece en el body — va en cookie HttpOnly
+                .andExpect(jsonPath("$.data.refreshToken").doesNotExist())
+                .andExpect(header().exists("Set-Cookie"));
     }
 
     @Test
