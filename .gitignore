@@ -1,0 +1,28 @@
+# Maven
+target/
+*.class
+
+# Variables de entorno y configuración local — nunca al repositorio
+.env
+application-local.yml
+src/main/resources/application-local.yml
+
+# IntelliJ / VS Code
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Base de datos Access (archivo fuente, no va al repositorio)
+*.mdb
+*.accdb
+
+# Docker — archivos en docker/ se incluyen pero docker-compose.override.yml no
+docker-compose.override.yml

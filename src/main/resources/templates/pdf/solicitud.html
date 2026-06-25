@@ -1,0 +1,197 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 9pt;
+            color: #000;
+            padding: 20px 30px;
+        }
+
+        /* ---- Encabezado ---- */
+        .header-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+        .header-logo-cell { width: 80px; vertical-align: middle; }
+        .header-logo-cell img { width: 70px; }
+        .header-info-cell { vertical-align: top; padding-left: 10px; font-size: 8pt; line-height: 1.5; }
+        .header-info-cell .empresa { font-weight: bold; font-size: 10pt; }
+        .header-doc-cell { width: 180px; vertical-align: top; text-align: center; }
+        .header-doc-cell .doc-tipo { font-weight: bold; font-size: 12pt; margin-bottom: 6px; }
+        .header-doc-cell .doc-no-label { font-size: 8pt; }
+        .header-doc-cell .doc-no { font-weight: bold; font-size: 16pt; letter-spacing: 2px; }
+
+        hr.separador { border: none; border-top: 1px solid #000; margin: 6px 0; }
+
+        /* ---- Campos proveedor / fecha ---- */
+        .campos-table { width: 100%; border-collapse: collapse; margin: 6px 0; }
+        .campos-table td { font-size: 9pt; padding: 1px 4px; vertical-align: bottom; }
+        .campo-label { font-weight: normal; white-space: nowrap; }
+        .campo-valor { border-bottom: 1px solid #000; min-width: 200px; }
+
+        .texto-solicitud { font-size: 8.5pt; margin-bottom: 4px; }
+
+        /* ---- Tabla de artículos ---- */
+        table.articulos { width: 100%; border-collapse: collapse; }
+        table.articulos th {
+            border: 1px solid #000;
+            background-color: #d0d0d0;
+            font-size: 8pt;
+            font-weight: bold;
+            text-align: center;
+            padding: 3px 4px;
+        }
+        table.articulos td {
+            border: 1px solid #000;
+            font-size: 8.5pt;
+            padding: 3px 4px;
+            vertical-align: top;
+            min-height: 16px;
+        }
+        table.articulos td.centro { text-align: center; }
+        table.articulos td.derecha { text-align: right; }
+        .col-cantidad    { width: 60px; }
+        .col-unidad      { width: 60px; }
+        .col-descripcion { }
+        .col-costo       { width: 90px; }
+        .col-total       { width: 80px; }
+
+        /* ---- Sección inferior ---- */
+        .destino-section { margin-top: 12px; font-size: 8.5pt; }
+        .destino-label { display: inline; font-style: normal; }
+        .destino-valor { border-bottom: 1px solid #000; display: inline-block; min-width: 400px; }
+
+        .firmas-table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+        .firmas-table td { vertical-align: bottom; font-size: 8.5pt; padding: 0 4px; }
+        .firma-linea { border-bottom: 1px solid #000; margin-top: 24px; }
+
+        .pie-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .pie-table td { font-size: 7.5pt; vertical-align: bottom; }
+        .pie-texto { text-align: center; font-style: italic; }
+        .pie-codigo { text-align: right; color: #cc0000; font-weight: bold; font-size: 8pt; }
+
+        .linea-corte {
+            border-top: 1px dashed #000;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== ENCABEZADO ===== -->
+<table class="header-table">
+    <tr>
+        <td class="header-logo-cell">
+            <!-- Logo institucional: reemplazar src con ruta real cuando esté disponible -->
+            <div style="width:70px; height:70px; border:1px solid #999; text-align:center;
+                        font-size:7pt; color:#999; line-height:70px;">LOGO</div>
+        </td>
+        <td class="header-info-cell">
+            <div class="empresa" th:text="${empresa.name}">EMPRESA</div>
+            <div th:text="${empresa.address}">DIRECCIÓN</div>
+            <div>
+                <span>C.P. </span><span th:text="${empresa.postalCode}">00000</span>
+                <span> &nbsp; R.F.C. </span><span th:text="${empresa.rfc}">RFC</span>
+            </div>
+            <div style="margin-top:4px;">
+                <span>TELS: </span><span th:text="${empresa.phone}">TELÉFONO</span>
+                <span> &nbsp; EXTENSIÓN </span><span th:text="${empresa.extension}">EXT</span>
+            </div>
+        </td>
+        <td class="header-doc-cell">
+            <div class="doc-tipo">PEDIDO</div>
+            <div class="doc-no-label">No.</div>
+            <div class="doc-no" th:text="${solicitud.folioFormatted()}">0000000</div>
+        </td>
+    </tr>
+</table>
+
+<hr class="separador"/>
+
+<!-- ===== PROVEEDOR / FECHA ===== -->
+<table class="campos-table">
+    <tr>
+        <td class="campo-label" style="width:65px;">Proveedor :</td>
+        <td class="campo-valor" th:text="${solicitud.proveedor()}">—</td>
+        <td style="width:20px;"></td>
+        <td class="campo-label" style="width:40px;">Fecha:</td>
+        <td class="campo-valor" style="width:100px;"
+            th:text="${#temporals.format(solicitud.fechaEmision(), 'dd/MM/yyyy')}">00/00/0000</td>
+    </tr>
+</table>
+
+<p class="texto-solicitud">Solicitamos nos suministre los siguientes artículos</p>
+
+<!-- ===== TABLA DE ARTÍCULOS ===== -->
+<table class="articulos">
+    <thead>
+        <tr>
+            <th class="col-cantidad">CANTIDAD</th>
+            <th class="col-unidad">UNIDAD</th>
+            <th class="col-descripcion">DESCRIPCIÓN</th>
+            <th class="col-costo">Costo por Unidad</th>
+            <th class="col-total">TOTAL</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr th:each="item : ${solicitud.items()}">
+            <td class="centro"
+                th:text="${item.cantidad() != null ? #numbers.formatDecimal(item.cantidad(),1,2) : ''}"></td>
+            <td class="centro" th:text="${item.unidad() != null ? item.unidad() : ''}"></td>
+            <td th:text="${item.descripcion()}"></td>
+            <td class="derecha"
+                th:text="${item.costoUnitario() != null ? '$' + #numbers.formatDecimal(item.costoUnitario(),1,2) : ''}"></td>
+            <td class="derecha"
+                th:text="${item.total() != null and item.total().compareTo(java.math.BigDecimal.ZERO) != 0 ? '$' + #numbers.formatDecimal(item.total(),1,2) : ''}"></td>
+        </tr>
+        <!-- Filas vacías para completar espacio visual -->
+        <tr th:if="${solicitud.items().size() &lt; 2}">
+            <td>&#160;</td><td></td><td></td><td></td><td></td>
+        </tr>
+        <tr th:if="${solicitud.items().size() &lt; 1}">
+            <td>&#160;</td><td></td><td></td><td></td><td></td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- ===== DESTINO ===== -->
+<div class="destino-section">
+    <span class="destino-label">Los artículos se destinarán a : </span>
+    <span class="destino-valor" th:text="${solicitud.destino()}">—</span>
+</div>
+
+<!-- ===== FIRMAS ===== -->
+<table class="firmas-table">
+    <tr>
+        <td style="width:50%;">
+            <span>Autorizado por :</span><br/>
+            <div class="firma-linea"></div>
+            <div th:text="${solicitud.autorizador() != null ? solicitud.autorizador() : ''}"></div>
+        </td>
+        <td style="width:50%; text-align:center;">
+            <span>Solicitado por</span><br/>
+            <span>Nombre y Firma</span>
+            <div class="firma-linea"></div>
+            <div th:text="${solicitud.solicitante() != null ? solicitud.solicitante() : ''}"></div>
+        </td>
+    </tr>
+</table>
+
+<!-- ===== PIE ===== -->
+<table class="pie-table">
+    <tr>
+        <td class="pie-texto">
+            Agradecemos devolver la copia de esta solicitud con los artículos y posteriormente presentar el original junto
+            con la factura para su liquidación.
+        </td>
+        <td class="pie-codigo" th:text="${empresa.documentCode}">CJ-FA-44 REV. 0</td>
+    </tr>
+</table>
+
+<div class="linea-corte"></div>
+
+</body>
+</html>

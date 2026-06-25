@@ -1,0 +1,49 @@
+package mx.juarezdeoriente.solicitudes.requests.infrastructure.persistence;
+
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import mx.juarezdeoriente.solicitudes.requests.domain.model.RequestStatus;
+import org.springframework.data.jpa.domain.Specification;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+class RequestSpecification {
+
+    static Specification<RequestJpaEntity> build(String folioPattern, UUID supplierId,
+                                                  UUID workerId, Instant from, Instant to,
+                                                  RequestStatus status, UUID createdBy) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            query.distinct(true);
+
+            if (folioPattern != null) {
+                predicates.add(cb.like(root.get("folio").as(String.class), folioPattern));
+            }
+            if (supplierId != null) {
+                predicates.add(cb.equal(root.get("supplierId"), supplierId));
+            }
+            if (workerId != null) {
+                var items = root.join("items", JoinType.LEFT);
+                predicates.add(cb.equal(items.get("workerId"), workerId));
+            }
+            if (from != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), from));
+            }
+            if (to != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), to));
+            }
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (createdBy != null) {
+                predicates.add(cb.equal(root.get("createdBy"), createdBy));
+            }
+
+            return predicates.isEmpty() ? cb.conjunction()
+                                        : cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+}

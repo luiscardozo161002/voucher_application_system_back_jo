@@ -1,0 +1,43 @@
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: solicitudes-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       solicitudes
+      POSTGRES_USER:     solicitudes_app
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme_local}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U solicitudes_app -d solicitudes"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: solicitudes-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL:          jdbc:postgresql://postgres:5432/solicitudes
+      DB_USER:         solicitudes_app
+      DB_PASSWORD:     ${DB_PASSWORD:-changeme_local}
+      SESSION_SECURE:  "false"
+      PORT:            8081
+    ports:
+      - "8081:8081"
+    volumes:
+      - backend_logs:/app/logs
+
+volumes:
+  postgres_data:
+  backend_logs:

@@ -1,0 +1,425 @@
+{
+  "info": {
+    "name": "Sistema de Solicitudes — Juarez de Oriente",
+    "description": "## Instrucciones\n1. Ejecuta **Auth / Login** primero. El token se guarda automáticamente.\n2. Ejecuta **Buscar proveedores** y **Buscar trabajadores** para obtener sus IDs.\n3. El flujo de solicitud es: Crear borrador → Agregar renglón → Emitir → Descargar PDF.\n\n## Datos de prueba (seeds)\n**Usuarios:** admin/Admin123! (ADMIN) | capturista/Capturista1! (CAPTURISTA)\n**Proveedores:** PROV-001, PROV-002, PROV-003\n**Trabajadores:** EMP-001 Juan Carlos, EMP-002 Maria Guadalupe, EMP-003 Pedro",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",    "value": "http://localhost:8081" },
+    { "key": "token",      "value": "" },
+    { "key": "userId",     "value": "" },
+    { "key": "supplierId", "value": "" },
+    { "key": "workerId",   "value": "" },
+    { "key": "requestId",  "value": "" },
+    { "key": "itemId",     "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Autenticación JWT. Ejecuta Login antes de cualquier otro endpoint.",
+      "item": [
+        {
+          "name": "Login",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.data && json.data.token) {",
+            "    pm.collectionVariables.set('token', json.data.token);",
+            "    pm.collectionVariables.set('userId', json.data.user.id);",
+            "    pm.test('Login exitoso', () => pm.response.to.have.status(200));",
+            "    console.log('Token guardado. Usuario:', json.data.user.username, '| Roles:', JSON.stringify(json.data.user.roles));",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1","auth","login"] },
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"Admin123!\"\n}", "options": { "raw": { "language": "json" } } },
+            "description": "Credenciales disponibles:\n- admin / Admin123! (ADMIN - acceso total)\n- capturista / Capturista1! (CAPTURISTA)\n\nEl token JWT se guarda en {{token}} automáticamente."
+          }
+        },
+        {
+          "name": "Mi perfil",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "v1","auth","me"] },
+            "description": "Retorna los datos del usuario autenticado actualmente."
+          }
+        },
+        {
+          "name": "Cambiar contraseña",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/change-password", "host": ["{{baseUrl}}"], "path": ["api", "v1","auth","change-password"] },
+            "body": { "mode": "raw", "raw": "{\n  \"currentPassword\": \"Admin123!\",\n  \"newPassword\": \"NuevoAdmin123!\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "v1","auth","logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usuarios",
+      "description": "Gestión de usuarios. Solo rol ADMIN.",
+      "item": [
+        {
+          "name": "Listar usuarios",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/users?page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api", "v1","users"],
+              "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "20" }]
+            }
+          }
+        },
+        {
+          "name": "Obtener usuario por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","users","{{userId}}"] },
+            "description": "{{userId}} se guarda automáticamente al hacer Login."
+          }
+        },
+        {
+          "name": "Crear usuario",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.data) { pm.collectionVariables.set('userId', json.data.id); console.log('userId guardado:', json.data.id); }"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/users", "host": ["{{baseUrl}}"], "path": ["api", "v1","users"] },
+            "body": { "mode": "raw", "raw": "{\n  \"username\": \"auditor1\",\n  \"password\": \"Auditor123!\",\n  \"displayName\": \"Auditor de Prueba\",\n  \"phone\": \"773-300-0001\",\n  \"roles\": [\"AUDITOR\"]\n}", "options": { "raw": { "language": "json" } } },
+            "description": "Roles disponibles: ADMIN | CAPTURISTA | AUTORIZADOR | AUDITOR\nLa contraseña debe tener mínimo 8 caracteres."
+          }
+        },
+        {
+          "name": "Actualizar usuario",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","users","{{userId}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"displayName\": \"Nombre Actualizado\",\n  \"phone\": \"773-999-9999\",\n  \"roles\": [\"CAPTURISTA\"],\n  \"active\": true\n}", "options": { "raw": { "language": "json" } } },
+            "description": "Todos los campos son opcionales. active: false desactiva al usuario."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Proveedores",
+      "description": "Catálogo de proveedores.\n\nEjecuta Buscar primero para obtener el supplierId que necesitas en las solicitudes.",
+      "item": [
+        {
+          "name": "Buscar proveedores",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.data && json.data.content && json.data.content.length > 0) {",
+            "    pm.collectionVariables.set('supplierId', json.data.content[0].id);",
+            "    console.log('supplierId guardado:', json.data.content[0].id, '|', json.data.content[0].name);",
+            "    console.log('--- Lista de proveedores disponibles ---');",
+            "    json.data.content.forEach(s => console.log(s.id, '|', s.code, '|', s.name));",
+            "}"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/suppliers?page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api", "v1","suppliers"],
+              "query": [
+                { "key": "q",      "value": "",     "disabled": true,  "description": "Texto libre: busca en clave (PROV-001) o nombre (UNION SERVICIOS)" },
+                { "key": "active", "value": "true", "disabled": true,  "description": "true = activos | false = inactivos | omitir = todos" },
+                { "key": "page",   "value": "0" },
+                { "key": "size",   "value": "20" }
+              ]
+            },
+            "description": "El script de Tests guarda el primer proveedor en {{supplierId}} y muestra todos en la consola.\n\nSeeds disponibles: PROV-001, PROV-002, PROV-003"
+          }
+        },
+        {
+          "name": "Obtener proveedor por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/suppliers/{{supplierId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","suppliers","{{supplierId}}"] }
+          }
+        },
+        {
+          "name": "Crear proveedor",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.data) { pm.collectionVariables.set('supplierId', json.data.id); console.log('supplierId guardado:', json.data.id); }"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/suppliers", "host": ["{{baseUrl}}"], "path": ["api", "v1","suppliers"] },
+            "body": { "mode": "raw", "raw": "{\n  \"code\": \"PROV-004\",\n  \"name\": \"PAPELERIA Y OFICINA CENTRAL\",\n  \"phone\": \"773-400-0004\"\n}", "options": { "raw": { "language": "json" } } },
+            "description": "La clave (code) debe ser única. Se normaliza a mayúsculas automáticamente."
+          }
+        },
+        {
+          "name": "Actualizar proveedor",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/suppliers/{{supplierId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","suppliers","{{supplierId}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"PAPELERIA Y OFICINA CENTRAL ACTUALIZADA\",\n  \"phone\": \"773-400-9999\",\n  \"active\": true\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Desactivar proveedor",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/suppliers/{{supplierId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","suppliers","{{supplierId}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"active\": false\n}", "options": { "raw": { "language": "json" } } }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Trabajadores",
+      "description": "Catálogo de trabajadores y socios.\n\nEjecuta Buscar primero para obtener el workerId.",
+      "item": [
+        {
+          "name": "Buscar trabajadores",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.data && json.data.content && json.data.content.length > 0) {",
+            "    pm.collectionVariables.set('workerId', json.data.content[0].id);",
+            "    console.log('workerId guardado:', json.data.content[0].id, '|', json.data.content[0].name);",
+            "    console.log('--- Lista de trabajadores disponibles ---');",
+            "    json.data.content.forEach(w => console.log(w.id, '|', w.name, '('+w.workerType+')'));",
+            "}"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/workers?page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api", "v1","workers"],
+              "query": [
+                { "key": "q",      "value": "",     "disabled": true, "description": "Busca en nombre (JUAN), clave empresa (EMP-001) o numero empleado (0001)" },
+                { "key": "active", "value": "true", "disabled": true, "description": "true = activos | false = inactivos | omitir = todos" },
+                { "key": "page",   "value": "0" },
+                { "key": "size",   "value": "20" }
+              ]
+            },
+            "description": "El script guarda el primer trabajador en {{workerId}} y muestra todos en consola.\n\nSeeds: EMP-001 Juan Carlos (SOCIO), EMP-002 Maria Guadalupe (SOCIO), EMP-003 Pedro (EVENTUAL)"
+          }
+        },
+        {
+          "name": "Obtener trabajador por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/workers/{{workerId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","workers","{{workerId}}"] }
+          }
+        },
+        {
+          "name": "Crear trabajador",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.data) { pm.collectionVariables.set('workerId', json.data.id); console.log('workerId guardado:', json.data.id); }"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/workers", "host": ["{{baseUrl}}"], "path": ["api", "v1","workers"] },
+            "body": { "mode": "raw", "raw": "{\n  \"companyCode\": \"EMP-004\",\n  \"employeeNumber\": \"0004\",\n  \"name\": \"ANA LUCIA GOMEZ RAMIREZ\",\n  \"phone\": \"773-500-0004\",\n  \"workerType\": \"SOCIO\"\n}", "options": { "raw": { "language": "json" } } },
+            "description": "workerType: SOCIO o EVENTUAL\ncompanyCode y employeeNumber son opcionales."
+          }
+        },
+        {
+          "name": "Actualizar trabajador",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/workers/{{workerId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","workers","{{workerId}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"ANA LUCIA GOMEZ ACTUALIZADA\",\n  \"workerType\": \"SOCIO\",\n  \"active\": true\n}", "options": { "raw": { "language": "json" } } }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Solicitudes",
+      "description": "Flujo completo:\n1. Buscar proveedores → obtener supplierId\n2. Buscar trabajadores → obtener workerId\n3. Crear borrador\n4. Agregar renglones (maximo 8)\n5. Emitir solicitud (asigna folio)\n6. Descargar PDF\n7. Cancelar (opcional)",
+      "item": [
+        {
+          "name": "Buscar solicitudes",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/requests?page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests"],
+              "query": [
+                { "key": "folio",      "value": "704",            "disabled": true, "description": "Numero de folio (ej: 704, 705). Es un numero, NO el codigo del proveedor." },
+                { "key": "supplierId", "value": "{{supplierId}}", "disabled": true, "description": "UUID del proveedor. Primero ejecuta Buscar proveedores." },
+                { "key": "workerId",   "value": "{{workerId}}",   "disabled": true, "description": "UUID del trabajador. Primero ejecuta Buscar trabajadores." },
+                { "key": "status",     "value": "EMITIDA",        "disabled": true, "description": "BORRADOR | EMITIDA | CANCELADA" },
+                { "key": "from",       "value": "2024-01-01T00:00:00Z", "disabled": true, "description": "Fecha inicio formato ISO 8601 (ej: 2024-01-01T00:00:00Z)" },
+                { "key": "to",         "value": "2026-12-31T23:59:59Z", "disabled": true, "description": "Fecha fin formato ISO 8601" },
+                { "key": "page",       "value": "0",  "description": "Pagina (inicia en 0)" },
+                { "key": "size",       "value": "20", "description": "Resultados por pagina" }
+              ]
+            },
+            "description": "Todos los filtros son opcionales — activalos individualmente.\n\nATENCION: el param 'folio' es el numero de pedido (704, 705...), NO el codigo del proveedor."
+          }
+        },
+        {
+          "name": "Obtener solicitud por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests","{{requestId}}"] },
+            "description": "{{requestId}} se guarda automáticamente al crear un borrador."
+          }
+        },
+        {
+          "name": "Crear borrador",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.data) {",
+            "    pm.collectionVariables.set('requestId', json.data.id);",
+            "    pm.test('Borrador creado (201)', () => pm.response.to.have.status(201));",
+            "    pm.test('Estado BORRADOR', () => pm.expect(json.data.status).to.eql('BORRADOR'));",
+            "    console.log('requestId guardado:', json.data.id);",
+            "    console.log('Estado:', json.data.status, '| Folio: se asigna al emitir');",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/requests", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests"] },
+            "body": { "mode": "raw", "raw": "{\n  \"supplierId\": \"{{supplierId}}\",\n  \"destination\": \"Mantenimiento preventivo de instalaciones — planta baja\",\n  \"authorizer\": \"Sr. Miguel Angel Luna\"\n}", "options": { "raw": { "language": "json" } } },
+            "description": "REQUISITO: ejecutar Buscar proveedores primero para que {{supplierId}} tenga valor.\n\nsupplierId: UUID del proveedor (obligatorio)\ndestination: descripcion del uso de los articulos (obligatorio)\nauthorizer: nombre de quien autoriza (opcional)"
+          }
+        },
+        {
+          "name": "Agregar renglón",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.data && json.data.items && json.data.items.length > 0) {",
+            "    const last = json.data.items[json.data.items.length - 1];",
+            "    pm.collectionVariables.set('itemId', last.id);",
+            "    console.log('itemId guardado:', last.id);",
+            "    console.log('Renglones:', json.data.items.length, '/ 8 maximo');",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/items", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests","{{requestId}}","items"] },
+            "body": { "mode": "raw", "raw": "{\n  \"workerId\": \"{{workerId}}\",\n  \"description\": \"PINTURA VINILICA BLANCA EN GALON\",\n  \"quantity\": 4,\n  \"unit\": \"GAL\",\n  \"unitCost\": 185.50\n}", "options": { "raw": { "language": "json" } } },
+            "description": "Campos:\n- workerId: UUID del trabajador (opcional, puede ser null)\n- description: descripcion del articulo o servicio (obligatorio)\n- quantity: cantidad numerica (opcional)\n- unit: GAL, PZA, KG, LT, M2, etc. (opcional)\n- unitCost: precio unitario (opcional)\n\nEl total = quantity x unitCost se calcula en el servidor.\nMaximo 8 renglones por solicitud."
+          }
+        },
+        {
+          "name": "Agregar renglón adicional",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/items", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests","{{requestId}}","items"] },
+            "body": { "mode": "raw", "raw": "{\n  \"workerId\": null,\n  \"description\": \"BROCHA DE 4 PULGADAS\",\n  \"quantity\": 6,\n  \"unit\": \"PZA\",\n  \"unitCost\": 45.00\n}", "options": { "raw": { "language": "json" } } },
+            "description": "Ejemplo con workerId: null (articulo no asignado a trabajador especifico)."
+          }
+        },
+        {
+          "name": "Eliminar renglón",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/items/{{itemId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests","{{requestId}}","items","{{itemId}}"] },
+            "description": "Solo funciona en estado BORRADOR. {{itemId}} se guarda al agregar un renglón."
+          }
+        },
+        {
+          "name": "Actualizar borrador",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests","{{requestId}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"supplierId\": \"{{supplierId}}\",\n  \"destination\": \"Destino actualizado — area de mantenimiento\",\n  \"authorizer\": \"Ing. Carlos Mendoza\"\n}", "options": { "raw": { "language": "json" } } },
+            "description": "Solo funciona en estado BORRADOR."
+          }
+        },
+        {
+          "name": "Emitir solicitud",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.data) {",
+            "    pm.test('Estado EMITIDA', () => pm.expect(json.data.status).to.eql('EMITIDA'));",
+            "    pm.test('Folio asignado', () => pm.expect(json.data.folio).to.be.a('number'));",
+            "    console.log('Solicitud emitida!');",
+            "    console.log('Folio:', json.data.folioFormatted);",
+            "    console.log('Renglones:', json.data.items.length);",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/issue", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests","{{requestId}}","issue"] },
+            "description": "Valida la solicitud y asigna un folio único consecutivo.\n\nRequisitos:\n- Estado BORRADOR\n- Al menos 1 renglón\n- Proveedor activo\n\nUna vez emitida no se puede modificar."
+          }
+        },
+        {
+          "name": "Descargar PDF",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/pdf", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests","{{requestId}}","pdf"] },
+            "description": "Genera el PDF del pedido institucional en tamaño carta.\n\nEn Postman: la respuesta llega como application/pdf. Haz clic en Save Response → Save to a file.\n\nSolo funciona en estado EMITIDA."
+          }
+        },
+        {
+          "name": "Cancelar solicitud",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.data) {",
+            "    pm.test('Estado CANCELADA', () => pm.expect(json.data.status).to.eql('CANCELADA'));",
+            "    console.log('Cancelada. Folio conservado:', json.data.folioFormatted);",
+            "    console.log('Motivo:', json.data.cancellationReason);",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/cancel", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests","{{requestId}}","cancel"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Proveedor no disponible en la fecha requerida\"\n}", "options": { "raw": { "language": "json" } } },
+            "description": "Cancela la solicitud. El motivo es obligatorio.\n\nEl folio NO se reutiliza aunque la solicitud esté cancelada (trazabilidad)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auditoria",
+      "description": "Bitácora inmutable del sistema. Solo ADMIN o AUDITOR.",
+      "item": [
+        {
+          "name": "Consultar eventos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/audit-events?page=0&size=50", "host": ["{{baseUrl}}"], "path": ["api", "v1","audit-events"],
+              "query": [
+                { "key": "actorId",    "value": "{{userId}}",     "disabled": true, "description": "UUID del usuario que realizó la acción. Usa {{userId}}." },
+                { "key": "action",     "value": "REQUEST_ISSUED", "disabled": true, "description": "Valores: USER_CREATED | USER_DEACTIVATED | SUPPLIER_CREATED | WORKER_CREATED | REQUEST_ISSUED | REQUEST_CANCELLED" },
+                { "key": "entityType", "value": "Request",        "disabled": true, "description": "Valores: User | Supplier | Worker | Request" },
+                { "key": "from",       "value": "2024-01-01T00:00:00Z", "disabled": true },
+                { "key": "to",         "value": "2026-12-31T23:59:59Z", "disabled": true },
+                { "key": "page",       "value": "0" },
+                { "key": "size",       "value": "50" }
+              ]
+            },
+            "description": "Resultados en orden descendente (mas reciente primero). La bitácora es de solo lectura."
+          }
+        }
+      ]
+    }
+  ]
+}
