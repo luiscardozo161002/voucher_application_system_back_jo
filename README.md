@@ -1,4 +1,4 @@
-# Sistema de Solicitudes de Compra
+# Sistema de Solicitudes de Vales (Backend)
 
 API REST para la gestión de solicitudes de compra (pedidos a proveedores).  
 Migración del sistema legado VB6/Access — **Juarez de Oriente S.A. de C.V.**
