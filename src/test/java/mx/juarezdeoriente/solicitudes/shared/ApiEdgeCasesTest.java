@@ -1,8 +1,7 @@
 package mx.juarezdeoriente.solicitudes.shared;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import mx.juarezdeoriente.solicitudes.auth.application.port.in.ChangePasswordUseCase;
-import mx.juarezdeoriente.solicitudes.auth.application.port.in.GetUsersUseCase;
+import mx.juarezdeoriente.solicitudes.auth.application.service.UserService;
 import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.AppUserDetailsService;
 import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.JwtAuthenticationFilter;
 import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.JwtService;
@@ -46,8 +45,7 @@ class ApiEdgeCasesTest {
     @MockBean AuthenticationManager  authManager;
     @MockBean JwtService             jwtService;
     @MockBean mx.juarezdeoriente.solicitudes.auth.infrastructure.security.RefreshTokenService refreshTokenService;
-    @MockBean ChangePasswordUseCase  changePasswordUseCase;
-    @MockBean GetUsersUseCase        getUsersUseCase;
+    @MockBean UserService userService;
     @MockBean AppUserDetailsService  userDetailsService;
 
     // =========================================================

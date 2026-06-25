@@ -97,6 +97,8 @@ app:
     phone: ${COMPANY_PHONE:(01-773) 78-5-04-97}
     extension: ${COMPANY_EXTENSION:125 - 126}
     document-code: ${COMPANY_DOCUMENT_CODE:CJ-FA-44 REV. 0}
+    # Lista de autorizadores separados por coma
+    authorizers: ${COMPANY_AUTHORIZERS:Sr. Miguel Angel Luna,Gerencia General}
 
   # Contraseñas iniciales de los seeds de desarrollo
   seeds:

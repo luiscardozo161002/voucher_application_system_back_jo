@@ -9,7 +9,7 @@ CREATE TABLE idempotency_keys (
     id           UUID         PRIMARY KEY,
     key_hash     VARCHAR(64)  NOT NULL UNIQUE,   -- SHA-256 de "userId:key"
     endpoint     VARCHAR(200) NOT NULL,
-    http_status  SMALLINT     NOT NULL,
+    http_status  INTEGER      NOT NULL,
     response     TEXT         NOT NULL,          -- JSON de la respuesta
     created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     expires_at   TIMESTAMPTZ  NOT NULL           -- TTL: 24h por defecto

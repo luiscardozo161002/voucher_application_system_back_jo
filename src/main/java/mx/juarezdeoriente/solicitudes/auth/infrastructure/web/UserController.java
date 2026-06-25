@@ -1,9 +1,7 @@
 package mx.juarezdeoriente.solicitudes.auth.infrastructure.web;
 
 import jakarta.validation.Valid;
-import mx.juarezdeoriente.solicitudes.auth.application.port.in.CreateUserUseCase;
-import mx.juarezdeoriente.solicitudes.auth.application.port.in.GetUsersUseCase;
-import mx.juarezdeoriente.solicitudes.auth.application.port.in.UpdateUserUseCase;
+import mx.juarezdeoriente.solicitudes.auth.application.service.UserService;
 import mx.juarezdeoriente.solicitudes.auth.infrastructure.web.dto.UserRequest;
 import mx.juarezdeoriente.solicitudes.auth.infrastructure.web.dto.UserResponse;
 import mx.juarezdeoriente.solicitudes.auth.infrastructure.web.dto.UserUpdateRequest;
@@ -21,24 +19,16 @@ import java.util.UUID;
 @PreAuthorize("hasRole('ADMIN')")
 public class UserController {
 
-    private final CreateUserUseCase createUserUseCase;
-    private final GetUsersUseCase   getUsersUseCase;
-    private final UpdateUserUseCase updateUserUseCase;
+    private final UserService userService;
 
-    public UserController(CreateUserUseCase createUserUseCase,
-                          GetUsersUseCase getUsersUseCase,
-                          UpdateUserUseCase updateUserUseCase) {
-        this.createUserUseCase = createUserUseCase;
-        this.getUsersUseCase   = getUsersUseCase;
-        this.updateUserUseCase = updateUserUseCase;
+    public UserController(UserService userService) {
+        this.userService = userService;
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<UserResponse>> create(@Valid @RequestBody UserRequest request) {
-        var user = createUserUseCase.execute(new CreateUserUseCase.Command(
-                request.username(), request.password(),
-                request.displayName(), request.phone(), request.roles()
-        ));
+        var user = userService.create(request.username(), request.password(),
+                request.displayName(), request.phone(), request.roles());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(UserResponse.from(user)));
     }
 
@@ -46,24 +36,22 @@ public class UserController {
     public ResponseEntity<ApiResponse<PageResult<UserResponse>>> list(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-
-        PageResult<UserResponse> result = getUsersUseCase.findAll(page, size).map(UserResponse::from);
+        PageResult<UserResponse> result = userService.findAll(
+                Math.max(0, page), Math.min(size < 1 ? 20 : size, 100)).map(UserResponse::from);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> getById(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(UserResponse.from(getUsersUseCase.findById(id))));
+        return ResponseEntity.ok(ApiResponse.ok(UserResponse.from(userService.findById(id))));
     }
 
     @PatchMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> update(
             @PathVariable UUID id,
             @Valid @RequestBody UserUpdateRequest request) {
-
-        var user = updateUserUseCase.execute(new UpdateUserUseCase.Command(
-                id, request.displayName(), request.phone(), request.roles(), request.active()
-        ));
+        var user = userService.update(id, request.displayName(), request.phone(),
+                request.roles(), request.active());
         return ResponseEntity.ok(ApiResponse.ok(UserResponse.from(user)));
     }
 }

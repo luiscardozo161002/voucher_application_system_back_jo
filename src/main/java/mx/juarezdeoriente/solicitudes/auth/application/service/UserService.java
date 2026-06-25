@@ -1,6 +1,6 @@
 package mx.juarezdeoriente.solicitudes.auth.application.service;
 
-import mx.juarezdeoriente.solicitudes.auth.application.port.in.*;
+import mx.juarezdeoriente.solicitudes.auth.domain.model.Role;
 import mx.juarezdeoriente.solicitudes.auth.domain.model.User;
 import mx.juarezdeoriente.solicitudes.auth.domain.port.UserRepository;
 import mx.juarezdeoriente.solicitudes.shared.domain.exception.ConflictException;
@@ -14,16 +14,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 @Transactional
-public class UserService implements LoginUseCase, CreateUserUseCase, ChangePasswordUseCase,
-        GetUsersUseCase, UpdateUserUseCase {
+public class UserService {
 
-    private final UserRepository        userRepository;
-    private final PasswordEncoder       passwordEncoder;
-    private final ApplicationEventPublisher eventPublisher;
+    private final UserRepository             userRepository;
+    private final PasswordEncoder            passwordEncoder;
+    private final ApplicationEventPublisher  eventPublisher;
 
     @Value("${app.security.max-login-attempts:5}")
     private int maxLoginAttempts;
@@ -39,20 +39,14 @@ public class UserService implements LoginUseCase, CreateUserUseCase, ChangePassw
         this.eventPublisher  = eventPublisher;
     }
 
-    // --- LoginUseCase ---
-
-    @Override
-    public User execute(LoginUseCase.Command command) {
-        User user = userRepository.findByUsername(command.username())
+    public User login(String username, String password) {
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new BadCredentialsException("Credenciales incorrectas"));
 
-        if (!user.isActive()) {
-            throw new DomainException("El usuario está desactivado");
-        }
-        if (user.isLocked()) {
-            throw new DomainException("El usuario está bloqueado temporalmente. Intente más tarde.");
-        }
-        if (!passwordEncoder.matches(command.password(), user.getPasswordHash())) {
+        if (!user.isActive()) throw new DomainException("El usuario está desactivado");
+        if (user.isLocked())  throw new DomainException("El usuario está bloqueado temporalmente. Intente más tarde.");
+
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             user.recordFailedLogin(maxLoginAttempts, lockoutMinutes);
             userRepository.save(user);
             throw new BadCredentialsException("Credenciales incorrectas");
@@ -62,78 +56,55 @@ public class UserService implements LoginUseCase, CreateUserUseCase, ChangePassw
         return userRepository.save(user);
     }
 
-    // --- CreateUserUseCase ---
-
-    @Override
-    public User execute(CreateUserUseCase.Command command) {
-        if (userRepository.existsByUsername(command.username())) {
-            throw new ConflictException("El nombre de usuario ya existe: " + command.username());
+    public User create(String username, String password, String displayName,
+                       String phone, Set<Role> roles) {
+        if (userRepository.existsByUsername(username)) {
+            throw new ConflictException("El nombre de usuario ya existe: " + username);
         }
-        validatePasswordStrength(command.password());
+        validatePasswordStrength(password);
 
-        User user = User.create(
-                command.username(),
-                passwordEncoder.encode(command.password()),
-                command.displayName(),
-                command.phone(),
-                command.roles()
-        );
+        User user = User.create(username, passwordEncoder.encode(password),
+                displayName, phone, roles);
         User saved = userRepository.save(user);
         user.pullDomainEvents().forEach(eventPublisher::publishEvent);
         return saved;
     }
 
-    // --- ChangePasswordUseCase ---
-
-    @Override
-    public void execute(ChangePasswordUseCase.Command command) {
-        User user = findById(command.userId());
-
-        if (!passwordEncoder.matches(command.currentPassword(), user.getPasswordHash())) {
+    public void changePassword(UUID userId, String currentPassword, String newPassword) {
+        User user = findById(userId);
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
             throw new DomainException("La contraseña actual es incorrecta");
         }
-        validatePasswordStrength(command.newPassword());
-
-        user.changePassword(passwordEncoder.encode(command.newPassword()));
+        validatePasswordStrength(newPassword);
+        user.changePassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
 
-    // --- GetUsersUseCase ---
-
-    @Override
     @Transactional(readOnly = true)
     public User findById(UUID id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Usuario", id));
     }
 
-    @Override
     @Transactional(readOnly = true)
     public PageResult<User> findAll(int page, int size) {
         return userRepository.findAll(page, size);
     }
 
-    // --- UpdateUserUseCase ---
+    public User update(UUID userId, String displayName, String phone,
+                       Set<Role> roles, Boolean active) {
+        User user = findById(userId);
 
-    @Override
-    public User execute(UpdateUserUseCase.Command command) {
-        User user = findById(command.userId());
-
-        if (command.roles() != null && !command.roles().isEmpty()) {
-            user.update(command.displayName(), command.phone(), command.roles());
+        if (roles != null && !roles.isEmpty()) {
+            user.update(displayName, phone, roles);
         }
-        if (Boolean.TRUE.equals(command.active())) {
-            user.activate();
-        } else if (Boolean.FALSE.equals(command.active())) {
-            user.deactivate();
-        }
+        if (Boolean.TRUE.equals(active))  user.activate();
+        if (Boolean.FALSE.equals(active)) user.deactivate();
 
         User saved = userRepository.save(user);
         user.pullDomainEvents().forEach(eventPublisher::publishEvent);
         return saved;
     }
-
-    // --- Helpers ---
 
     private void validatePasswordStrength(String password) {
         if (password == null || password.length() < 8) {

@@ -145,7 +145,7 @@
             <td class="derecha"
                 th:text="${item.costoUnitario() != null ? '$' + #numbers.formatDecimal(item.costoUnitario(),1,2) : ''}"></td>
             <td class="derecha"
-                th:text="${item.total() != null and item.total().compareTo(java.math.BigDecimal.ZERO) != 0 ? '$' + #numbers.formatDecimal(item.total(),1,2) : ''}"></td>
+                th:text="${item.total() != null ? '$' + #numbers.formatDecimal(item.total(),1,2) : ''}"></td>
         </tr>
         <!-- Filas vacías para completar espacio visual -->
         <tr th:if="${solicitud.items().size() &lt; 2}">

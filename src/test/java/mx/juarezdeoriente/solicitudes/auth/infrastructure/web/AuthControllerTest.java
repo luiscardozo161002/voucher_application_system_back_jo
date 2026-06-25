@@ -1,11 +1,10 @@
 package mx.juarezdeoriente.solicitudes.auth.infrastructure.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import mx.juarezdeoriente.solicitudes.auth.application.port.in.ChangePasswordUseCase;
-import mx.juarezdeoriente.solicitudes.auth.application.port.in.GetUsersUseCase;
 import mx.juarezdeoriente.solicitudes.auth.domain.model.Role;
 import mx.juarezdeoriente.solicitudes.auth.domain.model.User;
 import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.AppUserDetails;
+import mx.juarezdeoriente.solicitudes.auth.application.service.UserService;
 import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.AppUserDetailsService;
 import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.JwtAuthenticationFilter;
 import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.JwtService;
@@ -42,8 +41,8 @@ class AuthControllerTest {
     @MockBean AuthenticationManager   authManager;
     @MockBean JwtService              jwtService;
     @MockBean mx.juarezdeoriente.solicitudes.auth.infrastructure.security.RefreshTokenService refreshTokenService;
-    @MockBean ChangePasswordUseCase   changePasswordUseCase;
-    @MockBean GetUsersUseCase         getUsersUseCase;
+    @MockBean UserService userService;
+    
     @MockBean AppUserDetailsService  userDetailsService;
 
     @Test
@@ -58,7 +57,7 @@ class AuthControllerTest {
         when(jwtService.generateRefreshToken(any())).thenReturn("refresh.jwt.aqui");
         when(jwtService.getExpirationMs()).thenReturn(3600000L);
         when(jwtService.getRefreshExpirationMs()).thenReturn(604800000L);
-        when(getUsersUseCase.findById(userId)).thenReturn(user);
+        when(userService.findById(userId)).thenReturn(user);
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

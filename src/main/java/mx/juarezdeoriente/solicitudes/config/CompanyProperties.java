@@ -1,13 +1,14 @@
 package mx.juarezdeoriente.solicitudes.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * Datos institucionales que aparecen en el PDF del pedido.
  * Configurables vía variables de entorno COMPANY_*.
+ * Registrado via @EnableConfigurationProperties en SolicitudesApplication.
  */
-@Component
 @ConfigurationProperties(prefix = "app.company")
 public class CompanyProperties {
 
@@ -18,6 +19,7 @@ public class CompanyProperties {
     private String phone;
     private String extension;
     private String documentCode;
+    private List<String> authorizers;
 
     public String getName()         { return name; }
     public void setName(String v)   { this.name = v; }
@@ -39,4 +41,7 @@ public class CompanyProperties {
 
     public String getDocumentCode()       { return documentCode; }
     public void setDocumentCode(String v) { this.documentCode = v; }
+
+    public List<String> getAuthorizers()       { return authorizers; }
+    public void setAuthorizers(List<String> v) { this.authorizers = v; }
 }
