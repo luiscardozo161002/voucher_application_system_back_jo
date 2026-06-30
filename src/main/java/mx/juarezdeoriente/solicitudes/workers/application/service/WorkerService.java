@@ -45,7 +45,11 @@ public class WorkerService {
     @Cacheable(cacheNames = CacheConfig.WORKERS, key = "#query + '-' + #active + '-' + #page + '-' + #size")
     @Transactional(readOnly = true)
     public PageResult<Worker> search(String query, Boolean active, int page, int size) {
-        return workerRepository.search(query, active, page, size);
+        return workerRepository.search(query, active, null, page, size);
+    }
+
+    public PageResult<Worker> search(String query, Boolean active, WorkerType workerType, int page, int size) {
+        return workerRepository.search(query, active, workerType, page, size);
     }
 
     @CacheEvict(cacheNames = CacheConfig.WORKERS, allEntries = true)

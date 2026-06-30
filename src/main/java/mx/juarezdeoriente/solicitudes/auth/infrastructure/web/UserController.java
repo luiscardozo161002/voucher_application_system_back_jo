@@ -35,9 +35,9 @@ public class UserController {
     @GetMapping
     public ResponseEntity<ApiResponse<PageResult<UserResponse>>> list(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "10") int size) {
         PageResult<UserResponse> result = userService.findAll(
-                Math.max(0, page), Math.min(size < 1 ? 20 : size, 100)).map(UserResponse::from);
+                Math.max(0, page), Math.min(size < 1 ? 10 : size, 100)).map(UserResponse::from);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 

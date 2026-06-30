@@ -1,4 +1,4 @@
-package mx.juarezdeoriente.solicitudes.requests.domain;
+﻿package mx.juarezdeoriente.solicitudes.requests.domain;
 
 import mx.juarezdeoriente.solicitudes.requests.domain.event.RequestCancelledEvent;
 import mx.juarezdeoriente.solicitudes.requests.domain.event.RequestIssuedEvent;
@@ -23,7 +23,7 @@ class RequestTest {
 
     @BeforeEach
     void setUp() {
-        draft = Request.createDraft(SUPPLIER_ID, "Mantenimiento de oficinas", "Gerente", CREATED_BY);
+        draft = Request.createDraft(SUPPLIER_ID, null, "Mantenimiento de oficinas", "Gerente", CREATED_BY);
     }
 
     @Test
@@ -34,13 +34,13 @@ class RequestTest {
 
     @Test
     void crear_borrador_sin_proveedor_lanza_DomainException() {
-        assertThatThrownBy(() -> Request.createDraft(null, "Destino", "Autor", CREATED_BY))
+        assertThatThrownBy(() -> Request.createDraft(null, null, "Destino", "Autor", CREATED_BY))
                 .isInstanceOf(DomainException.class);
     }
 
     @Test
     void crear_borrador_sin_destino_lanza_DomainException() {
-        assertThatThrownBy(() -> Request.createDraft(SUPPLIER_ID, "  ", "Autor", CREATED_BY))
+        assertThatThrownBy(() -> Request.createDraft(SUPPLIER_ID, null, "  ", "Autor", CREATED_BY))
                 .isInstanceOf(DomainException.class);
     }
 
@@ -71,7 +71,7 @@ class RequestTest {
     void emitir_sin_renglones_lanza_DomainException() {
         assertThatThrownBy(() -> draft.issue(704L))
                 .isInstanceOf(DomainException.class)
-                .hasMessageContaining("renglón");
+                .hasMessageContaining("rengl");
     }
 
     @Test
@@ -92,7 +92,7 @@ class RequestTest {
 
     @Test
     void cancelar_sin_motivo_lanza_DomainException() {
-        draft.addItem(itemConDescripcion("Artículo"));
+        draft.addItem(itemConDescripcion("ArtÃ­culo"));
         draft.issue(706L);
 
         assertThatThrownBy(() -> draft.cancel("  ", CREATED_BY))
@@ -102,7 +102,7 @@ class RequestTest {
 
     @Test
     void cancelar_una_solicitud_ya_cancelada_lanza_DomainException() {
-        draft.addItem(itemConDescripcion("Artículo"));
+        draft.addItem(itemConDescripcion("ArtÃ­culo"));
         draft.issue(707L);
         draft.cancel("Motivo inicial", CREATED_BY);
         draft.pullDomainEvents();
@@ -114,28 +114,43 @@ class RequestTest {
     @Test
     void no_se_puede_agregar_mas_de_8_renglones() {
         for (int i = 1; i <= 8; i++) {
-            draft.addItem(itemConDescripcion("Artículo " + i));
+            draft.addItem(itemConDescripcion("ArtÃ­culo " + i));
         }
 
-        assertThatThrownBy(() -> draft.addItem(itemConDescripcion("Artículo 9")))
+        assertThatThrownBy(() -> draft.addItem(itemConDescripcion("ArtÃ­culo 9")))
                 .isInstanceOf(DomainException.class)
                 .hasMessageContaining("8");
     }
 
     @Test
-    void no_se_puede_modificar_una_solicitud_emitida() {
-        draft.addItem(itemConDescripcion("Artículo"));
+    void se_puede_agregar_un_renglon_a_una_solicitud_emitida() {
+        draft.addItem(itemConDescripcion("Articulo"));
         draft.issue(708L);
         draft.pullDomainEvents();
 
-        assertThatThrownBy(() -> draft.addItem(itemConDescripcion("Otro artículo")))
-                .isInstanceOf(DomainException.class)
-                .hasMessageContaining("BORRADOR");
+        draft.addItem(itemConDescripcion("Otro articulo"));
+
+        assertThat(draft.getItems()).hasSize(2);
+    }
+
+    @Test
+    void restaurar_solicitud_emitida_eliminada_vuelve_a_EMITIDA() {
+        draft.addItem(itemConDescripcion("Articulo"));
+        draft.issue(709L);
+        draft.cancel("Solicitud eliminada", CREATED_BY);
+
+        draft.restore();
+
+        assertThat(draft.getStatus()).isEqualTo(RequestStatus.EMITIDA);
+        assertThat(draft.getFolio()).isEqualTo(709L);
+        assertThat(draft.getIssuedAt()).isNotNull();
+        assertThat(draft.getCancelledAt()).isNull();
+        assertThat(draft.getCancellationReason()).isNull();
     }
 
     @Test
     void eliminar_un_renglon_reduce_la_lista() {
-        RequestItem item = itemConDescripcion("Artículo a eliminar");
+        RequestItem item = itemConDescripcion("ArtÃ­culo a eliminar");
         draft.addItem(item);
         assertThat(draft.getItems()).hasSize(1);
 

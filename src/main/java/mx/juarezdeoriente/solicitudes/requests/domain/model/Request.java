@@ -5,6 +5,7 @@ import mx.juarezdeoriente.solicitudes.requests.domain.event.RequestIssuedEvent;
 import mx.juarezdeoriente.solicitudes.shared.domain.exception.DomainException;
 import mx.juarezdeoriente.solicitudes.shared.domain.model.AggregateRoot;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,6 +18,7 @@ public class Request extends AggregateRoot {
     private Long folio;
     private RequestStatus status;
     private UUID supplierId;
+    private UUID solicitanteId;
     private String destination;
     private String authorizer;
     private UUID createdBy;
@@ -29,13 +31,14 @@ public class Request extends AggregateRoot {
     private static final int MAX_ITEMS = 8;
 
     private Request(UUID id, Long folio, RequestStatus status, UUID supplierId,
-                    String destination, String authorizer, UUID createdBy,
+                    UUID solicitanteId, String destination, String authorizer, UUID createdBy,
                     List<RequestItem> items, Instant createdAt,
                     Instant issuedAt, Instant cancelledAt, String cancellationReason) {
         this.id                 = id;
         this.folio              = folio;
         this.status             = status;
         this.supplierId         = supplierId;
+        this.solicitanteId      = solicitanteId;
         this.destination        = destination;
         this.authorizer         = authorizer;
         this.createdBy          = createdBy;
@@ -47,27 +50,29 @@ public class Request extends AggregateRoot {
     }
 
     public static Request reconstitute(UUID id, Long folio, RequestStatus status,
-                                       UUID supplierId, String destination, String authorizer,
+                                       UUID supplierId, UUID solicitanteId,
+                                       String destination, String authorizer,
                                        UUID createdBy, List<RequestItem> items, Instant createdAt,
                                        Instant issuedAt, Instant cancelledAt, String cancellationReason) {
-        return new Request(id, folio, status, supplierId, destination, authorizer,
+        return new Request(id, folio, status, supplierId, solicitanteId, destination, authorizer,
                 createdBy, items, createdAt, issuedAt, cancelledAt, cancellationReason);
     }
 
     /** Crea un borrador; el folio se asigna al emitir, no aquí. */
-    public static Request createDraft(UUID supplierId, String destination,
-                                      String authorizer, UUID createdBy) {
+    public static Request createDraft(UUID supplierId, UUID solicitanteId,
+                                      String destination, String authorizer, UUID createdBy) {
         if (supplierId == null) throw new DomainException("El proveedor es obligatorio");
         if (destination == null || destination.isBlank())
             throw new DomainException("El destino/propósito es obligatorio");
 
         return new Request(UUID.randomUUID(), null, RequestStatus.BORRADOR, supplierId,
-                destination.trim(), authorizer, createdBy, List.of(), Instant.now(),
+                solicitanteId, destination.trim(), authorizer, createdBy, List.of(), Instant.now(),
                 null, null, null);
     }
 
     public void addItem(RequestItem item) {
-        ensureEditable();
+        if (status == RequestStatus.CANCELADA)
+            throw new DomainException("No se pueden agregar artículos a una solicitud cancelada");
         if (items.size() >= MAX_ITEMS) {
             throw new DomainException("Una solicitud no puede tener más de " + MAX_ITEMS + " renglones");
         }
@@ -75,8 +80,20 @@ public class Request extends AggregateRoot {
     }
 
     public void removeItem(UUID itemId) {
-        ensureEditable();
+        if (status == RequestStatus.CANCELADA)
+            throw new DomainException("No se pueden eliminar artículos de una solicitud cancelada");
         items.removeIf(i -> i.getId().equals(itemId));
+    }
+
+    public void updateItem(UUID itemId, UUID workerId, String description,
+                           BigDecimal quantity, String unit, BigDecimal unitCost) {
+        if (status == RequestStatus.CANCELADA)
+            throw new DomainException("No se pueden modificar artículos de una solicitud cancelada");
+        RequestItem item = items.stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new DomainException("Artículo no encontrado"));
+        item.update(workerId, description, quantity, unit, unitCost);
     }
 
     public void updateDraft(UUID supplierId, String destination, String authorizer) {
@@ -86,6 +103,17 @@ public class Request extends AggregateRoot {
             throw new DomainException("El destino/propósito es obligatorio");
 
         this.supplierId  = supplierId;
+        this.destination = destination.trim();
+        this.authorizer  = authorizer;
+    }
+
+    /** Permite corregir destino y autorizador en una solicitud ya emitida. */
+    public void updateIssued(String destination, String authorizer) {
+        if (status == RequestStatus.CANCELADA)
+            throw new DomainException("No se puede modificar una solicitud cancelada");
+        if (destination == null || destination.isBlank())
+            throw new DomainException("El destino/propósito es obligatorio");
+
         this.destination = destination.trim();
         this.authorizer  = authorizer;
     }
@@ -118,6 +146,16 @@ public class Request extends AggregateRoot {
         registerEvent(new RequestCancelledEvent(this.id, this.folio, cancelledBy, reason));
     }
 
+    /** Restaura una solicitud eliminada al estado previo inferido por su folio. */
+    public void restore() {
+        if (status != RequestStatus.CANCELADA) {
+            throw new DomainException("Solo se pueden restaurar solicitudes canceladas");
+        }
+        this.status             = (folio != null || issuedAt != null) ? RequestStatus.EMITIDA : RequestStatus.BORRADOR;
+        this.cancelledAt        = null;
+        this.cancellationReason = null;
+    }
+
     private void ensureEditable() {
         if (status != RequestStatus.BORRADOR) {
             throw new DomainException("Solo se pueden modificar solicitudes en estado BORRADOR");
@@ -130,6 +168,7 @@ public class Request extends AggregateRoot {
     public Long getFolio()               { return folio; }
     public RequestStatus getStatus()     { return status; }
     public UUID getSupplierId()          { return supplierId; }
+    public UUID getSolicitanteId()       { return solicitanteId; }
     public String getDestination()       { return destination; }
     public String getAuthorizer()        { return authorizer; }
     public UUID getCreatedBy()           { return createdBy; }

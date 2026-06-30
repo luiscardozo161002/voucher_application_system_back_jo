@@ -14,7 +14,7 @@ public class PageableDefaults {
     private int maxPageSize;
 
     public int safeSize(int requested) {
-        if (requested < 1)  return 20;
+        if (requested < 1)  return 10;
         if (requested > maxPageSize) return maxPageSize;
         return requested;
     }

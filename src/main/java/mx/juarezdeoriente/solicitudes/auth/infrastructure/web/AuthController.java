@@ -85,7 +85,7 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<LoginResponse>> refresh(
-            @CookieValue(name = "refresh_token", required = false) String refreshToken,
+            @CookieValue(name = "${app.refresh-cookie.name:refresh_token}", required = false) String refreshToken,
             HttpServletResponse response) {
 
         if (refreshToken == null || refreshToken.isBlank()) {

@@ -34,6 +34,7 @@ class RequestRepositoryAdapter implements RequestRepository {
         e.setFolio(r.getFolio());
         e.setStatus(r.getStatus());
         e.setSupplierId(r.getSupplierId());
+        e.setSolicitanteId(r.getSolicitanteId());
         e.setDestination(r.getDestination());
         e.setAuthorizer(r.getAuthorizer());
         e.setCreatedBy(r.getCreatedBy());
@@ -65,13 +66,38 @@ class RequestRepositoryAdapter implements RequestRepository {
     public PageResult<Request> search(String folio, UUID supplierId, UUID workerId,
                                       Instant from, Instant to, RequestStatus status,
                                       UUID createdBy, int page, int size) {
+        return search(folio, supplierId, workerId, from, to, status, createdBy, page, size, false);
+    }
+
+    public PageResult<Request> search(String folio, UUID supplierId, UUID workerId,
+                                      Instant from, Instant to, RequestStatus status,
+                                      UUID createdBy, int page, int size, boolean excludeCancelled) {
         String folioPattern = folio != null ? "%" + folio + "%" : null;
         var spec = RequestSpecification.build(folioPattern, supplierId, workerId,
-                from, to, status, createdBy);
+                from, to, status, createdBy, excludeCancelled);
         Page<RequestJpaEntity> p = jpa.findAll(spec,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
         return PageResult.of(p.getContent().stream().map(this::toDomain).toList(),
                 page, size, p.getTotalElements());
+    }
+
+    @Override
+    public void deleteById(UUID id) {
+        jpa.deleteById(id);
+    }
+
+    @Override
+    public void deleteAllCancelled(UUID createdBy) {
+        var spec = RequestSpecification.build(null, null, null, null, null,
+                RequestStatus.CANCELADA, createdBy, false);
+        // deleteAll(entities) respeta CascadeType.ALL en items y documentos
+        jpa.deleteAll(jpa.findAll(spec));
+    }
+
+    @Override
+    public long countByStatus(RequestStatus status, UUID createdBy) {
+        var spec = RequestSpecification.build(null, null, null, null, null, status, createdBy);
+        return jpa.count(spec);
     }
 
     @Override
@@ -88,6 +114,7 @@ class RequestRepositoryAdapter implements RequestRepository {
         e.setFolio(r.getFolio());
         e.setStatus(r.getStatus());
         e.setSupplierId(r.getSupplierId());
+        e.setSolicitanteId(r.getSolicitanteId());
         e.setDestination(r.getDestination());
         e.setAuthorizer(r.getAuthorizer());
         e.setCreatedBy(r.getCreatedBy());
@@ -125,8 +152,8 @@ class RequestRepositoryAdapter implements RequestRepository {
 
         return Request.reconstitute(
                 e.getId(), e.getFolio(), e.getStatus(), e.getSupplierId(),
-                e.getDestination(), e.getAuthorizer(), e.getCreatedBy(),
-                items, e.getCreatedAt(), e.getIssuedAt(),
+                e.getSolicitanteId(), e.getDestination(), e.getAuthorizer(),
+                e.getCreatedBy(), items, e.getCreatedAt(), e.getIssuedAt(),
                 e.getCancelledAt(), e.getCancellationReason()
         );
     }

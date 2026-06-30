@@ -12,6 +12,9 @@ import mx.juarezdeoriente.solicitudes.suppliers.application.service.SupplierServ
 import mx.juarezdeoriente.solicitudes.suppliers.domain.model.Supplier;
 import mx.juarezdeoriente.solicitudes.workers.application.service.WorkerService;
 import mx.juarezdeoriente.solicitudes.workers.domain.model.Worker;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.TemplateEngine;
@@ -20,7 +23,6 @@ import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
@@ -33,8 +35,17 @@ import java.util.UUID;
 @Service
 public class PdfGeneratorService {
 
-    /** Versión semántica de la plantilla. Incrementar al modificar el HTML del PDF. */
+    private static final Logger log = LoggerFactory.getLogger(PdfGeneratorService.class);
     static final String TEMPLATE_VERSION = "1.0.0";
+
+    /**
+     * ITextRenderer es costoso de crear (carga fuentes, inicializa CSS engine).
+     * Se reutiliza por hilo — no es thread-safe pero ThreadLocal garantiza aislamiento.
+     */
+    private final ThreadLocal<ITextRenderer> rendererPool = ThreadLocal.withInitial(ITextRenderer::new);
+
+    /** URL base del classpath resuelta una sola vez al arrancar. */
+    private String staticBaseUrl;
 
     private final RequestService               requestService;
     private final SupplierService              supplierService;
@@ -57,6 +68,21 @@ public class PdfGeneratorService {
         this.company            = company;
     }
 
+    /** Pre-calienta el renderer al arrancar para que la primera petición real sea rápida. */
+    @PostConstruct
+    void warmUp() {
+        try {
+            staticBaseUrl = getClass().getResource("/static/").toExternalForm();
+            // Primer render vacío para cargar fuentes y CSS engine
+            ITextRenderer r = rendererPool.get();
+            r.setDocumentFromString("<html><body></body></html>", staticBaseUrl);
+            r.layout();
+            log.info("PdfGeneratorService: renderer pre-calentado correctamente.");
+        } catch (Exception e) {
+            log.warn("PdfGeneratorService: pre-calentamiento falló — el primer PDF será más lento. {}", e.getMessage());
+        }
+    }
+
     @Transactional
     public byte[] generateForRequest(UUID requestId) {
         Request request = requestService.findById(requestId);
@@ -67,6 +93,21 @@ public class PdfGeneratorService {
 
         Supplier supplier = supplierService.findById(request.getSupplierId());
         List<SolicitudPdfData.ItemData> items = buildItems(request);
+
+        // Solicitante: buscar por solicitanteId del request; si no, primer artículo con trabajador
+        String solicitante = null;
+        if (request.getSolicitanteId() != null) {
+            try {
+                solicitante = workerService.findById(request.getSolicitanteId()).getName();
+            } catch (Exception ignored) {}
+        }
+        if (solicitante == null) {
+            solicitante = items.stream()
+                    .filter(i -> i.trabajador() != null)
+                    .map(SolicitudPdfData.ItemData::trabajador)
+                    .findFirst()
+                    .orElse(null);
+        }
 
         BigDecimal totalGeneral = items.stream()
                 .map(SolicitudPdfData.ItemData::total)
@@ -85,7 +126,7 @@ public class PdfGeneratorService {
                 supplier.getPhone(),
                 request.getDestination(),
                 request.getAuthorizer(),
-                null,
+                solicitante,
                 items,
                 totalGeneral
         );
@@ -124,8 +165,8 @@ public class PdfGeneratorService {
         String xhtml = templateEngine.process("pdf/solicitud", ctx);
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            ITextRenderer renderer = new ITextRenderer();
-            renderer.setDocumentFromString(xhtml);
+            ITextRenderer renderer = rendererPool.get();  // reutiliza el renderer del hilo actual
+            renderer.setDocumentFromString(xhtml, staticBaseUrl);
             renderer.layout();
             renderer.createPDF(out);
             return out.toByteArray();

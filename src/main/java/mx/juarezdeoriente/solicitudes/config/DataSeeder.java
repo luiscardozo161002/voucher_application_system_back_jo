@@ -36,19 +36,22 @@ public class DataSeeder implements ApplicationRunner {
     @Value("${app.seeds.capturista-password:Capturista1!}")
     private String capturistaPassword;
 
-    private final UserRepository     userRepository;
-    private final SupplierService    supplierService;
-    private final WorkerService      workerService;
-    private final PasswordEncoder    passwordEncoder;
+    private final UserRepository             userRepository;
+    private final SupplierService            supplierService;
+    private final WorkerService              workerService;
+    private final PasswordEncoder            passwordEncoder;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     public DataSeeder(UserRepository userRepository,
                       SupplierService supplierService,
                       WorkerService workerService,
-                      PasswordEncoder passwordEncoder) {
+                      PasswordEncoder passwordEncoder,
+                      org.springframework.context.ApplicationEventPublisher eventPublisher) {
         this.userRepository  = userRepository;
         this.supplierService = supplierService;
         this.workerService   = workerService;
         this.passwordEncoder = passwordEncoder;
+        this.eventPublisher  = eventPublisher;
     }
 
     @Override
@@ -75,7 +78,7 @@ public class DataSeeder implements ApplicationRunner {
                 Set.of(Role.ADMIN)
         );
         userRepository.save(admin);
-        admin.pullDomainEvents();
+        admin.pullDomainEvents().forEach(eventPublisher::publishEvent);
 
         User capturista = User.create(
                 "capturista",
@@ -85,9 +88,9 @@ public class DataSeeder implements ApplicationRunner {
                 Set.of(Role.CAPTURISTA)
         );
         userRepository.save(capturista);
-        capturista.pullDomainEvents();
+        capturista.pullDomainEvents().forEach(eventPublisher::publishEvent);
 
-        log.info("  Usuarios creados: admin / Admin123! — capturista / Capturista1!");
+        log.info("  Usuarios admin y capturista creados.");
     }
 
     private void seedSuppliers() {

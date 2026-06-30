@@ -13,6 +13,7 @@ public record RequestResponse(
         String folioFormatted,
         RequestStatus status,
         UUID supplierId,
+        UUID solicitanteId,
         String destination,
         String authorizer,
         UUID createdBy,
@@ -29,8 +30,8 @@ public record RequestResponse(
 
         return new RequestResponse(
                 r.getId(), r.getFolio(), formatted, r.getStatus(),
-                r.getSupplierId(), r.getDestination(), r.getAuthorizer(),
-                r.getCreatedBy(),
+                r.getSupplierId(), r.getSolicitanteId(),
+                r.getDestination(), r.getAuthorizer(), r.getCreatedBy(),
                 r.getItems().stream().map(RequestItemResponse::from).toList(),
                 r.getCreatedAt(), r.getIssuedAt(),
                 r.getCancelledAt(), r.getCancellationReason()

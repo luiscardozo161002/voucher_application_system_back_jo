@@ -42,6 +42,17 @@ public class RequestItem {
                 quantity, unit, unitCost, position);
     }
 
+    public void update(UUID workerId, String description,
+                       BigDecimal quantity, String unit, BigDecimal unitCost) {
+        if (description == null || description.isBlank())
+            throw new DomainException("La descripción del artículo es obligatoria");
+        this.workerId    = workerId;
+        this.description = description.trim();
+        this.quantity    = quantity;
+        this.unit        = unit;
+        this.unitCost    = unitCost;
+    }
+
     /** Total calculado siempre en dominio; el cliente no lo envía como fuente de verdad. */
     public BigDecimal getTotal() {
         if (quantity == null || unitCost == null) return BigDecimal.ZERO;

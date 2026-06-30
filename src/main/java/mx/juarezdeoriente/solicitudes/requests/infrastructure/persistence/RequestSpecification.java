@@ -15,6 +15,13 @@ class RequestSpecification {
     static Specification<RequestJpaEntity> build(String folioPattern, UUID supplierId,
                                                   UUID workerId, Instant from, Instant to,
                                                   RequestStatus status, UUID createdBy) {
+        return build(folioPattern, supplierId, workerId, from, to, status, createdBy, false);
+    }
+
+    static Specification<RequestJpaEntity> build(String folioPattern, UUID supplierId,
+                                                  UUID workerId, Instant from, Instant to,
+                                                  RequestStatus status, UUID createdBy,
+                                                  boolean excludeCancelled) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             query.distinct(true);
@@ -37,6 +44,8 @@ class RequestSpecification {
             }
             if (status != null) {
                 predicates.add(cb.equal(root.get("status"), status));
+            } else if (excludeCancelled) {
+                predicates.add(cb.notEqual(root.get("status"), RequestStatus.CANCELADA));
             }
             if (createdBy != null) {
                 predicates.add(cb.equal(root.get("createdBy"), createdBy));

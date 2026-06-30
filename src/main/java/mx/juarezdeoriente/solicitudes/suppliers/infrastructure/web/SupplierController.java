@@ -36,9 +36,9 @@ public class SupplierController {
             @RequestParam(required = false) String q,
             @RequestParam(required = false) Boolean active,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "10") int size) {
 
-        PageResult<SupplierResponse> result = supplierService.search(q, active, Math.max(0, page), Math.min(size < 1 ? 20 : size, 100))
+        PageResult<SupplierResponse> result = supplierService.search(q, active, Math.max(0, page), Math.min(size < 1 ? 10 : size, 100))
                 .map(SupplierResponse::from);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }

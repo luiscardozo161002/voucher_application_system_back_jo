@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public record CreateDraftRequest(
         @NotNull(message = "El proveedor es obligatorio") UUID supplierId,
+        UUID solicitanteId,
         @NotBlank(message = "El destino/proposito es obligatorio") @Size(max = 1000, message = "El destino no puede exceder 1000 caracteres") String destination,
         String authorizer
 ) {}

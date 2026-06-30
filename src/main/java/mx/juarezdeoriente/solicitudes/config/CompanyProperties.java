@@ -14,6 +14,7 @@ public class CompanyProperties {
 
     private String name;
     private String address;
+    private String cityLine;
     private String postalCode;
     private String rfc;
     private String phone;
@@ -26,6 +27,9 @@ public class CompanyProperties {
 
     public String getAddress()           { return address; }
     public void setAddress(String v)     { this.address = v; }
+
+    public String getCityLine()          { return cityLine; }
+    public void setCityLine(String v)    { this.cityLine = v; }
 
     public String getPostalCode()        { return postalCode; }
     public void setPostalCode(String v)  { this.postalCode = v; }

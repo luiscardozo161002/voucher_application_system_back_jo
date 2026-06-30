@@ -2,6 +2,7 @@ package mx.juarezdeoriente.solicitudes.workers.infrastructure.persistence;
 
 import mx.juarezdeoriente.solicitudes.shared.domain.model.PageResult;
 import mx.juarezdeoriente.solicitudes.workers.domain.model.Worker;
+import mx.juarezdeoriente.solicitudes.workers.domain.model.WorkerType;
 import mx.juarezdeoriente.solicitudes.workers.domain.port.WorkerRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -41,8 +42,13 @@ class WorkerRepositoryAdapter implements WorkerRepository {
 
     @Override
     public PageResult<Worker> search(String query, Boolean active, int page, int size) {
+        return search(query, active, null, page, size);
+    }
+
+    @Override
+    public PageResult<Worker> search(String query, Boolean active, WorkerType workerType, int page, int size) {
         String pattern = query != null ? "%" + query.toLowerCase() + "%" : null;
-        Page<WorkerJpaEntity> p = jpa.search(pattern, active, PageRequest.of(page, size));
+        Page<WorkerJpaEntity> p = jpa.search(pattern, active, workerType, PageRequest.of(page, size));
         return PageResult.of(p.getContent().stream().map(this::toDomain).toList(),
                 page, size, p.getTotalElements());
     }

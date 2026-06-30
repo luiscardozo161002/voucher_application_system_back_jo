@@ -26,6 +26,9 @@ public class RequestJpaEntity {
     @Column(name = "supplier_id", nullable = false, columnDefinition = "uuid")
     private UUID supplierId;
 
+    @Column(name = "solicitante_id", columnDefinition = "uuid")
+    private UUID solicitanteId;
+
     @Column(nullable = false, columnDefinition = "text")
     private String destination;
 
@@ -68,6 +71,8 @@ public class RequestJpaEntity {
     public void setStatus(RequestStatus v)   { this.status = v; }
     public UUID getSupplierId()              { return supplierId; }
     public void setSupplierId(UUID v)        { this.supplierId = v; }
+    public UUID getSolicitanteId()           { return solicitanteId; }
+    public void setSolicitanteId(UUID v)     { this.solicitanteId = v; }
     public String getDestination()           { return destination; }
     public void setDestination(String v)     { this.destination = v; }
     public String getAuthorizer()            { return authorizer; }

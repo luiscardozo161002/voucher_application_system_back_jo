@@ -46,13 +46,11 @@ class RequestServiceIntegrationTest extends IntegrationTestBase {
 
     @Test
     void crear_borrador_y_emitir_asigna_folio_unico() {
-        Request r1 = requestService.createDraft(
-                supplier.getId(), "Materiales de oficina", "Gerente", user.getId());
+        Request r1 = requestService.createDraft(supplier.getId(), null, "Materiales de oficina", "Gerente", user.getId());
         requestService.addItem(r1.getId(), null, "Papel A4",
                 new BigDecimal("5"), "Resma", new BigDecimal("120.00"));
 
-        Request r2 = requestService.createDraft(
-                supplier.getId(), "Limpieza", "Gerente", user.getId());
+        Request r2 = requestService.createDraft(supplier.getId(), null, "Limpieza", "Gerente", user.getId());
         requestService.addItem(r2.getId(), null, "Escoba",
                 new BigDecimal("2"), "PZA", new BigDecimal("45.00"));
 
@@ -67,8 +65,7 @@ class RequestServiceIntegrationTest extends IntegrationTestBase {
 
     @Test
     void cancelar_solicitud_emitida_cambia_estado_y_persiste_motivo() {
-        Request draft = requestService.createDraft(
-                supplier.getId(), "Compra de equipo", "Director", user.getId());
+        Request draft = requestService.createDraft(supplier.getId(), null, "Compra de equipo", "Director", user.getId());
         requestService.addItem(draft.getId(), null, "Computadora",
                 BigDecimal.ONE, "PZA", new BigDecimal("18000.00"));
 
@@ -82,8 +79,7 @@ class RequestServiceIntegrationTest extends IntegrationTestBase {
 
     @Test
     void emitir_borrador_sin_renglones_lanza_DomainException() {
-        Request draft = requestService.createDraft(
-                supplier.getId(), "Sin renglones", null, user.getId());
+        Request draft = requestService.createDraft(supplier.getId(), null, "Sin renglones", null, user.getId());
 
         assertThatThrownBy(() -> requestService.issue(draft.getId()))
                 .isInstanceOf(DomainException.class)
@@ -92,11 +88,11 @@ class RequestServiceIntegrationTest extends IntegrationTestBase {
 
     @Test
     void busqueda_por_estado_retorna_solo_los_correctos() {
-        Request d1 = requestService.createDraft(supplier.getId(), "Destino A", null, user.getId());
+        Request d1 = requestService.createDraft(supplier.getId(), null, "Destino A", null, user.getId());
         requestService.addItem(d1.getId(), null, "Art. 1", BigDecimal.ONE, "PZA", BigDecimal.TEN);
         requestService.issue(d1.getId());
 
-        Request d2 = requestService.createDraft(supplier.getId(), "Destino B", null, user.getId());
+        Request d2 = requestService.createDraft(supplier.getId(), null, "Destino B", null, user.getId());
 
         var emitidas = requestService.search(null, null, null, null, null,
                 RequestStatus.EMITIDA, null, 0, 20);

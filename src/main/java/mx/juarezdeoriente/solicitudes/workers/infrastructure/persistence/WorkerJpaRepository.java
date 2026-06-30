@@ -1,5 +1,6 @@
 package mx.juarezdeoriente.solicitudes.workers.infrastructure.persistence;
 
+import mx.juarezdeoriente.solicitudes.workers.domain.model.WorkerType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,8 +17,10 @@ interface WorkerJpaRepository extends JpaRepository<WorkerJpaEntity, UUID> {
                                     OR LOWER(w.companyCode) LIKE :pattern
                                     OR LOWER(w.employeeNumber) LIKE :pattern)
               AND (:active IS NULL OR w.active = :active)
+              AND (:workerType IS NULL OR w.workerType = :workerType)
             """)
     Page<WorkerJpaEntity> search(@Param("pattern") String pattern,
                                  @Param("active") Boolean active,
+                                 @Param("workerType") WorkerType workerType,
                                  Pageable pageable);
 }

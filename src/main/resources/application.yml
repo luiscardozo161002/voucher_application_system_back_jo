@@ -91,7 +91,8 @@ app:
   # Datos institucionales — aparecen en el PDF del pedido
   company:
     name: ${COMPANY_NAME:JUAREZ DE ORIENTE S.A. DE C.V.}
-    address: ${COMPANY_ADDRESS:AV. TULANCINGO NO. 103 SAN MIGUEL VINDHO, MPIO. DE TULA DE ALLENDE, HIDALGO}
+    address: ${COMPANY_ADDRESS:AV. TULANCINGO NO. 103 SAN MIGUEL VINDHO,}
+    city-line: ${COMPANY_CITY_LINE:MPIO. DE TULA DE ALLENDE, HIDALGO.}
     postal-code: ${COMPANY_POSTAL_CODE:42842}
     rfc: ${COMPANY_RFC:JOR070518U13}
     phone: ${COMPANY_PHONE:(01-773) 78-5-04-97}
