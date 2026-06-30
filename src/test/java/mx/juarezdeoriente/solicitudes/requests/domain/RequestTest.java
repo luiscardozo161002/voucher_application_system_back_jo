@@ -1,4 +1,4 @@
-﻿package mx.juarezdeoriente.solicitudes.requests.domain;
+package mx.juarezdeoriente.solicitudes.requests.domain;
 
 import mx.juarezdeoriente.solicitudes.requests.domain.event.RequestCancelledEvent;
 import mx.juarezdeoriente.solicitudes.requests.domain.event.RequestIssuedEvent;

@@ -1,4 +1,4 @@
-﻿package mx.juarezdeoriente.solicitudes.requests.infrastructure.web;
+package mx.juarezdeoriente.solicitudes.requests.infrastructure.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.AppUserDetailsService;
