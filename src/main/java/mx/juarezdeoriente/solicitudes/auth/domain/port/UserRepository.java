@@ -18,4 +18,10 @@ public interface UserRepository {
     boolean existsByUsername(String username);
 
     PageResult<User> findAll(int page, int size);
+
+    void deleteById(UUID id);
+
+    long countByRole(String role);
+
+    long countByRoleAndActive(String role, boolean active);
 }

@@ -3,6 +3,7 @@ package mx.juarezdeoriente.solicitudes.auth.application.service;
 import mx.juarezdeoriente.solicitudes.auth.domain.model.Role;
 import mx.juarezdeoriente.solicitudes.auth.domain.model.User;
 import mx.juarezdeoriente.solicitudes.auth.domain.port.UserRepository;
+import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.RefreshTokenService;
 import mx.juarezdeoriente.solicitudes.shared.domain.exception.ConflictException;
 import mx.juarezdeoriente.solicitudes.shared.domain.exception.DomainException;
 import mx.juarezdeoriente.solicitudes.shared.domain.exception.NotFoundException;
@@ -24,6 +25,7 @@ public class UserService {
     private final UserRepository             userRepository;
     private final PasswordEncoder            passwordEncoder;
     private final ApplicationEventPublisher  eventPublisher;
+    private final RefreshTokenService        refreshTokenService;
 
     @Value("${app.security.max-login-attempts:5}")
     private int maxLoginAttempts;
@@ -33,10 +35,12 @@ public class UserService {
 
     public UserService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
-                       ApplicationEventPublisher eventPublisher) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.eventPublisher  = eventPublisher;
+                       ApplicationEventPublisher eventPublisher,
+                       RefreshTokenService refreshTokenService) {
+        this.userRepository      = userRepository;
+        this.passwordEncoder     = passwordEncoder;
+        this.eventPublisher      = eventPublisher;
+        this.refreshTokenService = refreshTokenService;
     }
 
     public User login(String username, String password) {
@@ -92,8 +96,17 @@ public class UserService {
     }
 
     public User update(UUID userId, String displayName, String phone,
-                       Set<Role> roles, Boolean active) {
+                       Set<Role> roles, Boolean active, UUID requesterId) {
+        if (userId.equals(requesterId) && Boolean.FALSE.equals(active)) {
+            throw new DomainException("No puedes desactivar tu propio usuario");
+        }
+
         User user = findById(userId);
+
+        if (Boolean.FALSE.equals(active) && user.getRoles().contains(Role.ADMIN)
+                && userRepository.countByRoleAndActive("ADMIN", true) <= 1) {
+            throw new DomainException("No se puede desactivar al único administrador activo del sistema");
+        }
 
         if (roles != null && !roles.isEmpty()) {
             user.update(displayName, phone, roles);
@@ -104,6 +117,19 @@ public class UserService {
         User saved = userRepository.save(user);
         user.pullDomainEvents().forEach(eventPublisher::publishEvent);
         return saved;
+    }
+
+    public void delete(UUID targetId, UUID requesterId) {
+        if (targetId.equals(requesterId)) {
+            throw new DomainException("No puedes eliminar tu propio usuario");
+        }
+        User target = findById(targetId);
+        if (target.getRoles().contains(Role.ADMIN)
+                && userRepository.countByRole("ADMIN") <= 1) {
+            throw new DomainException("No se puede eliminar al único administrador del sistema");
+        }
+        refreshTokenService.revokeAll(targetId);
+        userRepository.deleteById(targetId);
     }
 
     private void validatePasswordStrength(String password) {

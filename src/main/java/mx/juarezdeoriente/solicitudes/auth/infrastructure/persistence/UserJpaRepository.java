@@ -10,4 +10,8 @@ interface UserJpaRepository extends JpaRepository<UserJpaEntity, UUID> {
     Optional<UserJpaEntity> findByUsername(String username);
 
     boolean existsByUsername(String username);
+
+    long countByRolesContaining(String role);
+
+    long countByRolesContainingAndActive(String role, boolean active);
 }

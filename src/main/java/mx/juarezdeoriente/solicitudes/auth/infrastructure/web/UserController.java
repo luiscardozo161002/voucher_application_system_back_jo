@@ -6,10 +6,12 @@ import mx.juarezdeoriente.solicitudes.auth.infrastructure.web.dto.UserRequest;
 import mx.juarezdeoriente.solicitudes.auth.infrastructure.web.dto.UserResponse;
 import mx.juarezdeoriente.solicitudes.auth.infrastructure.web.dto.UserUpdateRequest;
 import mx.juarezdeoriente.solicitudes.shared.domain.model.PageResult;
+import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.AppUserDetails;
 import mx.juarezdeoriente.solicitudes.shared.infrastructure.web.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -49,9 +51,18 @@ public class UserController {
     @PatchMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> update(
             @PathVariable UUID id,
-            @Valid @RequestBody UserUpdateRequest request) {
+            @Valid @RequestBody UserUpdateRequest request,
+            @AuthenticationPrincipal AppUserDetails principal) {
         var user = userService.update(id, request.displayName(), request.phone(),
-                request.roles(), request.active());
+                request.roles(), request.active(), principal.getId());
         return ResponseEntity.ok(ApiResponse.ok(UserResponse.from(user)));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal AppUserDetails principal) {
+        userService.delete(id, principal.getId());
+        return ResponseEntity.noContent().build();
     }
 }

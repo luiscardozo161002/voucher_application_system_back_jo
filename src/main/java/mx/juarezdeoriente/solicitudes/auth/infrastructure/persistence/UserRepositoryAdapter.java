@@ -64,6 +64,21 @@ class UserRepositoryAdapter implements UserRepository {
                 page, size, p.getTotalElements());
     }
 
+    @Override
+    public void deleteById(UUID id) {
+        jpaRepository.deleteById(id);
+    }
+
+    @Override
+    public long countByRole(String role) {
+        return jpaRepository.countByRolesContaining(role);
+    }
+
+    @Override
+    public long countByRoleAndActive(String role, boolean active) {
+        return jpaRepository.countByRolesContainingAndActive(role, active);
+    }
+
     private UserJpaEntity toEntity(User u) {
         UserJpaEntity e = new UserJpaEntity();
         e.setId(u.getId());
