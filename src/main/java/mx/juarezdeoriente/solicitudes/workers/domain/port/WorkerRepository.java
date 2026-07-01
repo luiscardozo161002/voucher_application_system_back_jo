@@ -16,4 +16,6 @@ public interface WorkerRepository {
     PageResult<Worker> search(String query, Boolean active, int page, int size);
 
     PageResult<Worker> search(String query, Boolean active, WorkerType workerType, int page, int size);
+
+    void deleteById(UUID id);
 }

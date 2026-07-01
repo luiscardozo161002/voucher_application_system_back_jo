@@ -4,17 +4,23 @@ import mx.juarezdeoriente.solicitudes.audit.domain.model.AuditEvent;
 import mx.juarezdeoriente.solicitudes.audit.domain.port.AuditEventRepository;
 import mx.juarezdeoriente.solicitudes.auth.domain.event.UserCreatedEvent;
 import mx.juarezdeoriente.solicitudes.auth.domain.event.UserDeactivatedEvent;
+import mx.juarezdeoriente.solicitudes.auth.domain.event.UserDeletedEvent;
+import mx.juarezdeoriente.solicitudes.auth.domain.event.UserUpdatedEvent;
+import mx.juarezdeoriente.solicitudes.auth.domain.port.UserRepository;
 import mx.juarezdeoriente.solicitudes.requests.domain.event.RequestCancelledEvent;
 import mx.juarezdeoriente.solicitudes.requests.domain.event.RequestIssuedEvent;
 import mx.juarezdeoriente.solicitudes.suppliers.domain.event.SupplierCreatedEvent;
+import mx.juarezdeoriente.solicitudes.suppliers.domain.event.SupplierDeletedEvent;
 import mx.juarezdeoriente.solicitudes.suppliers.domain.event.SupplierUpdatedEvent;
 import mx.juarezdeoriente.solicitudes.workers.domain.event.WorkerCreatedEvent;
+import mx.juarezdeoriente.solicitudes.workers.domain.event.WorkerDeletedEvent;
 import mx.juarezdeoriente.solicitudes.workers.domain.event.WorkerUpdatedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+
+import java.util.UUID;
 
 /**
  * Escucha todos los domain events y los persiste como registros de auditoría.
@@ -26,61 +32,85 @@ public class DomainEventAuditListener {
 
     private static final Logger log = LoggerFactory.getLogger(DomainEventAuditListener.class);
     private final AuditEventRepository auditEventRepository;
+    private final UserRepository userRepository;
 
-    public DomainEventAuditListener(AuditEventRepository auditEventRepository) {
+    public DomainEventAuditListener(AuditEventRepository auditEventRepository,
+                                    UserRepository userRepository) {
         this.auditEventRepository = auditEventRepository;
+        this.userRepository       = userRepository;
     }
 
     @EventListener
-    @Async
     public void on(UserCreatedEvent event) {
-        save(event.getUserId(), "USER_CREATED", "User",
+        save(null, "USER_CREATED", "User",
                 event.getUserId().toString(),
                 "username=" + event.getUsername());
     }
 
     @EventListener
-    @Async
     public void on(UserDeactivatedEvent event) {
-        save(event.getUserId(), "USER_DEACTIVATED", "User",
+        save(null, "USER_DEACTIVATED", "User",
                 event.getUserId().toString(),
                 "username=" + event.getUsername());
     }
 
     @EventListener
-    @Async
+    public void on(UserUpdatedEvent event) {
+        save(event.getActorId(), "USER_UPDATED", "User",
+                event.getUserId().toString(),
+                "username=" + event.getUsername());
+    }
+
+    @EventListener
+    public void on(UserDeletedEvent event) {
+        save(event.getActorId(), "USER_DELETED", "User",
+                event.getUserId().toString(),
+                "username=" + event.getUsername());
+    }
+
+    @EventListener
     public void on(SupplierCreatedEvent event) {
-        save(null, "SUPPLIER_CREATED", "Supplier",
+        save(event.getActorId(), "SUPPLIER_CREATED", "Supplier",
                 event.getSupplierId().toString(),
                 "code=" + event.getCode() + ",name=" + event.getName());
     }
 
     @EventListener
-    @Async
-    public void on(WorkerCreatedEvent event) {
-        save(null, "WORKER_CREATED", "Worker",
-                event.getWorkerId().toString(),
-                "name=" + event.getName());
-    }
-
-    @EventListener
-    @Async
     public void on(SupplierUpdatedEvent event) {
-        save(null, "SUPPLIER_UPDATED", "Supplier",
+        save(event.getActorId(), "SUPPLIER_UPDATED", "Supplier",
                 event.getSupplierId().toString(),
                 "name=" + event.getName());
     }
 
     @EventListener
-    @Async
-    public void on(WorkerUpdatedEvent event) {
-        save(null, "WORKER_UPDATED", "Worker",
+    public void on(SupplierDeletedEvent event) {
+        save(event.getActorId(), "SUPPLIER_DELETED", "Supplier",
+                event.getSupplierId().toString(),
+                "code=" + event.getCode() + ",name=" + event.getName());
+    }
+
+    @EventListener
+    public void on(WorkerCreatedEvent event) {
+        save(event.getActorId(), "WORKER_CREATED", "Worker",
                 event.getWorkerId().toString(),
                 "name=" + event.getName());
     }
 
     @EventListener
-    @Async
+    public void on(WorkerUpdatedEvent event) {
+        save(event.getActorId(), "WORKER_UPDATED", "Worker",
+                event.getWorkerId().toString(),
+                "name=" + event.getName());
+    }
+
+    @EventListener
+    public void on(WorkerDeletedEvent event) {
+        save(event.getActorId(), "WORKER_DELETED", "Worker",
+                event.getWorkerId().toString(),
+                "employeeNumber=" + event.getEmployeeNumber() + ",name=" + event.getName());
+    }
+
+    @EventListener
     public void on(RequestIssuedEvent event) {
         save(event.getIssuedBy(), "REQUEST_ISSUED", "Request",
                 event.getRequestId().toString(),
@@ -88,20 +118,30 @@ public class DomainEventAuditListener {
     }
 
     @EventListener
-    @Async
     public void on(RequestCancelledEvent event) {
         save(event.getCancelledBy(), "REQUEST_CANCELLED", "Request",
                 event.getRequestId().toString(),
                 "folio=" + event.getFolio() + ",reason=" + event.getReason());
     }
 
-    private void save(java.util.UUID actorId, String action, String entityType,
+    private void save(UUID actorId, String action, String entityType,
                       String entityId, String changes) {
         try {
-            auditEventRepository.save(AuditEvent.create(actorId, action, entityType, entityId, changes));
+            String actorUsername = resolveUsername(actorId);
+            String fullChanges = actorUsername != null
+                    ? "actor=" + actorUsername + (changes != null ? "," + changes : "")
+                    : changes;
+            auditEventRepository.save(AuditEvent.create(actorId, action, entityType, entityId, fullChanges));
         } catch (Exception ex) {
             // La auditoría no debe interrumpir el flujo principal
             log.error("Error guardando evento de auditoría: action={} entity={}", action, entityId, ex);
         }
+    }
+
+    private String resolveUsername(UUID actorId) {
+        if (actorId == null) return null;
+        return userRepository.findById(actorId)
+                .map(u -> u.getUsername())
+                .orElse(actorId.toString());
     }
 }

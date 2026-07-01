@@ -53,6 +53,11 @@ class WorkerRepositoryAdapter implements WorkerRepository {
                 page, size, p.getTotalElements());
     }
 
+    @Override
+    public void deleteById(UUID id) {
+        jpa.deleteById(id);
+    }
+
     private WorkerJpaEntity toEntity(Worker w) {
         WorkerJpaEntity e = new WorkerJpaEntity();
         e.setId(w.getId());

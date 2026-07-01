@@ -3,6 +3,7 @@ package mx.juarezdeoriente.solicitudes.workers.application.service;
 import mx.juarezdeoriente.solicitudes.config.CacheConfig;
 import mx.juarezdeoriente.solicitudes.shared.domain.exception.NotFoundException;
 import mx.juarezdeoriente.solicitudes.shared.domain.model.PageResult;
+import mx.juarezdeoriente.solicitudes.workers.domain.event.WorkerDeletedEvent;
 import mx.juarezdeoriente.solicitudes.workers.domain.model.Worker;
 import mx.juarezdeoriente.solicitudes.workers.domain.model.WorkerType;
 import mx.juarezdeoriente.solicitudes.workers.domain.port.WorkerRepository;
@@ -29,8 +30,8 @@ public class WorkerService {
 
     @CacheEvict(cacheNames = CacheConfig.WORKERS, allEntries = true)
     public Worker create(String companyCode, String employeeNumber,
-                         String name, String phone, WorkerType workerType) {
-        Worker worker = Worker.create(companyCode, employeeNumber, name, phone, workerType);
+                         String name, String phone, WorkerType workerType, UUID actorId) {
+        Worker worker = Worker.create(companyCode, employeeNumber, name, phone, workerType, actorId);
         Worker saved  = workerRepository.save(worker);
         worker.pullDomainEvents().forEach(eventPublisher::publishEvent);
         return saved;
@@ -54,12 +55,20 @@ public class WorkerService {
 
     @CacheEvict(cacheNames = CacheConfig.WORKERS, allEntries = true)
     public Worker update(UUID id, String companyCode, String employeeNumber,
-                         String name, String phone, WorkerType workerType) {
+                         String name, String phone, WorkerType workerType, UUID actorId) {
         Worker worker = findById(id);
-        worker.update(companyCode, employeeNumber, name, phone, workerType);
+        worker.update(companyCode, employeeNumber, name, phone, workerType, actorId);
         Worker saved = workerRepository.save(worker);
         worker.pullDomainEvents().forEach(eventPublisher::publishEvent);
         return saved;
+    }
+
+    @CacheEvict(cacheNames = CacheConfig.WORKERS, allEntries = true)
+    public void delete(UUID id, UUID actorId) {
+        Worker worker = findById(id);
+        eventPublisher.publishEvent(
+                new WorkerDeletedEvent(worker.getId(), worker.getEmployeeNumber(), worker.getName(), actorId));
+        workerRepository.deleteById(id);
     }
 
     @CacheEvict(cacheNames = CacheConfig.WORKERS, allEntries = true)

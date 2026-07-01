@@ -31,21 +31,21 @@ public class Supplier extends AggregateRoot {
         return new Supplier(id, code, name, phone, active, createdAt);
     }
 
-    public static Supplier create(String code, String name, String phone) {
+    public static Supplier create(String code, String name, String phone, UUID actorId) {
         if (code == null || code.isBlank()) throw new DomainException("La clave del proveedor es obligatoria");
         if (name == null || name.isBlank()) throw new DomainException("El nombre del proveedor es obligatorio");
 
         Supplier s = new Supplier(UUID.randomUUID(), code.trim().toUpperCase(), name.trim(),
                 phone, true, Instant.now());
-        s.registerEvent(new SupplierCreatedEvent(s.id, s.code, s.name));
+        s.registerEvent(new SupplierCreatedEvent(s.id, s.code, s.name, actorId));
         return s;
     }
 
-    public void update(String name, String phone) {
+    public void update(String name, String phone, UUID actorId) {
         if (name == null || name.isBlank()) throw new DomainException("El nombre del proveedor es obligatorio");
         this.name  = name.trim();
         this.phone = phone;
-        registerEvent(new SupplierUpdatedEvent(this.id, this.name));
+        registerEvent(new SupplierUpdatedEvent(this.id, this.name, actorId));
     }
 
     public void deactivate() { this.active = false; }

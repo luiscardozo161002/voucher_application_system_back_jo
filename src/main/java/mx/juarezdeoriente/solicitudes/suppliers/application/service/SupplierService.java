@@ -4,6 +4,7 @@ import mx.juarezdeoriente.solicitudes.config.CacheConfig;
 import mx.juarezdeoriente.solicitudes.shared.domain.exception.ConflictException;
 import mx.juarezdeoriente.solicitudes.shared.domain.exception.NotFoundException;
 import mx.juarezdeoriente.solicitudes.shared.domain.model.PageResult;
+import mx.juarezdeoriente.solicitudes.suppliers.domain.event.SupplierDeletedEvent;
 import mx.juarezdeoriente.solicitudes.suppliers.domain.model.Supplier;
 import mx.juarezdeoriente.solicitudes.suppliers.domain.port.SupplierRepository;
 import org.springframework.cache.annotation.CacheEvict;
@@ -28,11 +29,11 @@ public class SupplierService {
     }
 
     @CacheEvict(cacheNames = CacheConfig.SUPPLIERS, allEntries = true)
-    public Supplier create(String code, String name, String phone) {
+    public Supplier create(String code, String name, String phone, UUID actorId) {
         if (supplierRepository.existsByCode(code.trim().toUpperCase())) {
             throw new ConflictException("Ya existe un proveedor con la clave: " + code);
         }
-        Supplier supplier = Supplier.create(code, name, phone);
+        Supplier supplier = Supplier.create(code, name, phone, actorId);
         Supplier saved    = supplierRepository.save(supplier);
         supplier.pullDomainEvents().forEach(eventPublisher::publishEvent);
         return saved;
@@ -51,12 +52,20 @@ public class SupplierService {
     }
 
     @CacheEvict(cacheNames = CacheConfig.SUPPLIERS, allEntries = true)
-    public Supplier update(UUID id, String name, String phone) {
+    public Supplier update(UUID id, String name, String phone, UUID actorId) {
         Supplier supplier = findById(id);
-        supplier.update(name, phone);
+        supplier.update(name, phone, actorId);
         Supplier saved = supplierRepository.save(supplier);
         supplier.pullDomainEvents().forEach(eventPublisher::publishEvent);
         return saved;
+    }
+
+    @CacheEvict(cacheNames = CacheConfig.SUPPLIERS, allEntries = true)
+    public void delete(UUID id, UUID actorId) {
+        Supplier supplier = findById(id);
+        eventPublisher.publishEvent(
+                new SupplierDeletedEvent(supplier.getId(), supplier.getCode(), supplier.getName(), actorId));
+        supplierRepository.deleteById(id);
     }
 
     @CacheEvict(cacheNames = CacheConfig.SUPPLIERS, allEntries = true)

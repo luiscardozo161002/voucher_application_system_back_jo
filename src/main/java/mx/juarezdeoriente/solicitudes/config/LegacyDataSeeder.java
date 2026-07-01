@@ -2,6 +2,7 @@ package mx.juarezdeoriente.solicitudes.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
@@ -31,6 +32,9 @@ public class LegacyDataSeeder implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(LegacyDataSeeder.class);
     private static final int    LEGACY_THRESHOLD = 10;
 
+    @Value("${app.seeds.demo-data:true}")
+    private boolean demoData;
+
     private final DataSource dataSource;
 
     public LegacyDataSeeder(DataSource dataSource) {
@@ -48,13 +52,17 @@ public class LegacyDataSeeder implements ApplicationRunner {
                 return;
             }
 
-            log.info("Cargando datos historicos del sistema legado...");
+            log.info("Cargando datos historicos del sistema legado... (demo-data={})", demoData);
             executeSql(conn, "db/legacy/01_proveedores.sql");
             log.info("  Proveedores importados.");
             executeSql(conn, "db/legacy/02_trabajadores.sql");
             log.info("  Trabajadores importados.");
-            executeSql(conn, "db/legacy/03_solicitudes.sql");
-            log.info("  Solicitudes historicas importadas.");
+            if (demoData) {
+                executeSql(conn, "db/legacy/03_solicitudes.sql");
+                log.info("  Solicitudes historicas importadas.");
+            } else {
+                log.info("  Modo produccion: solicitudes del legado omitidas.");
+            }
             log.info("Migracion del legado completada.");
         }
     }

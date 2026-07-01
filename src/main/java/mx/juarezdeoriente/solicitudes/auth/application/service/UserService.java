@@ -1,5 +1,7 @@
 package mx.juarezdeoriente.solicitudes.auth.application.service;
 
+import mx.juarezdeoriente.solicitudes.auth.domain.event.UserDeletedEvent;
+import mx.juarezdeoriente.solicitudes.auth.domain.event.UserUpdatedEvent;
 import mx.juarezdeoriente.solicitudes.auth.domain.model.Role;
 import mx.juarezdeoriente.solicitudes.auth.domain.model.User;
 import mx.juarezdeoriente.solicitudes.auth.domain.port.UserRepository;
@@ -116,6 +118,7 @@ public class UserService {
 
         User saved = userRepository.save(user);
         user.pullDomainEvents().forEach(eventPublisher::publishEvent);
+        eventPublisher.publishEvent(new UserUpdatedEvent(userId, user.getUsername(), requesterId));
         return saved;
     }
 
@@ -129,6 +132,7 @@ public class UserService {
             throw new DomainException("No se puede eliminar al único administrador del sistema");
         }
         refreshTokenService.revokeAll(targetId);
+        eventPublisher.publishEvent(new UserDeletedEvent(targetId, target.getUsername(), requesterId));
         userRepository.deleteById(targetId);
     }
 

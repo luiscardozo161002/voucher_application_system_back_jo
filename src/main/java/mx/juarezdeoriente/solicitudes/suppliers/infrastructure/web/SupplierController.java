@@ -1,6 +1,7 @@
 package mx.juarezdeoriente.solicitudes.suppliers.infrastructure.web;
 
 import jakarta.validation.Valid;
+import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.AppUserDetails;
 import mx.juarezdeoriente.solicitudes.shared.domain.model.PageResult;
 import mx.juarezdeoriente.solicitudes.shared.infrastructure.web.ApiResponse;
 import mx.juarezdeoriente.solicitudes.suppliers.application.service.SupplierService;
@@ -10,6 +11,7 @@ import mx.juarezdeoriente.solicitudes.suppliers.infrastructure.web.dto.SupplierU
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -26,8 +28,11 @@ public class SupplierController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'CAPTURISTA')")
-    public ResponseEntity<ApiResponse<SupplierResponse>> create(@Valid @RequestBody SupplierRequest req) {
-        var supplier = supplierService.create(req.code(), req.name(), req.phone());
+    public ResponseEntity<ApiResponse<SupplierResponse>> create(
+            @Valid @RequestBody SupplierRequest req,
+            @AuthenticationPrincipal AppUserDetails principal) {
+        var supplier = supplierService.create(req.code(), req.name(), req.phone(),
+                principal != null ? principal.getId() : null);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(SupplierResponse.from(supplier)));
     }
 
@@ -52,12 +57,23 @@ public class SupplierController {
     @PreAuthorize("hasAnyRole('ADMIN', 'CAPTURISTA')")
     public ResponseEntity<ApiResponse<SupplierResponse>> update(
             @PathVariable UUID id,
-            @Valid @RequestBody SupplierUpdateRequest req) {
+            @Valid @RequestBody SupplierUpdateRequest req,
+            @AuthenticationPrincipal AppUserDetails principal) {
 
         if (req.active() != null) {
             supplierService.setActive(id, req.active());
         }
-        var supplier = supplierService.update(id, req.name(), req.phone());
+        var supplier = supplierService.update(id, req.name(), req.phone(),
+                principal != null ? principal.getId() : null);
         return ResponseEntity.ok(ApiResponse.ok(SupplierResponse.from(supplier)));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> delete(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal AppUserDetails principal) {
+        supplierService.delete(id, principal != null ? principal.getId() : null);
+        return ResponseEntity.noContent().build();
     }
 }

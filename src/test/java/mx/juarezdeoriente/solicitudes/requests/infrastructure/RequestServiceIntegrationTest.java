@@ -36,7 +36,7 @@ class RequestServiceIntegrationTest extends IntegrationTestBase {
 
     @BeforeEach
     void setUp() {
-        supplier = supplierService.create("PROV-001", "Proveedor de Prueba", "555-9999");
+        supplier = supplierService.create("PROV-001", "Proveedor de Prueba", "555-9999", null);
         user = userRepository.save(
                 User.create("test_user", passwordEncoder.encode("Password1!"),
                         "Usuario de Prueba", null, Set.of(Role.CAPTURISTA))

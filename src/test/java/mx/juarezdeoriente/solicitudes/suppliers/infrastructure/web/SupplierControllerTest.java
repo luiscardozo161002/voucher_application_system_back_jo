@@ -46,7 +46,7 @@ class SupplierControllerTest {
         Supplier supplier = Supplier.reconstitute(UUID.randomUUID(), "PROV-TEST",
                 "Proveedor Test", "555-0000", true, Instant.now());
 
-        when(supplierService.create(anyString(), anyString(), any())).thenReturn(supplier);
+        when(supplierService.create(anyString(), anyString(), any(), any())).thenReturn(supplier);
 
         mockMvc.perform(post("/api/v1/suppliers")
                         .contentType(MediaType.APPLICATION_JSON)

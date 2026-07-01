@@ -17,4 +17,6 @@ public interface SupplierRepository {
     boolean existsByCode(String code);
 
     PageResult<Supplier> search(String query, Boolean active, int page, int size);
+
+    void deleteById(UUID id);
 }

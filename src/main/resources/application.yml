@@ -105,7 +105,7 @@ app:
   seeds:
     admin-password: ${SEED_ADMIN_PASSWORD:Admin123!}
     capturista-password: ${SEED_CAPTURISTA_PASSWORD:Capturista1!}
-    demo-data: ${SEED_DEMO_DATA:true}
+    demo-data: ${SEED_DEMO_DATA:false}
 
 info:
   app:

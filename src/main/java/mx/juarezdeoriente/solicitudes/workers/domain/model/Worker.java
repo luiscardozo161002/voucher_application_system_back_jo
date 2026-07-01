@@ -39,25 +39,25 @@ public class Worker extends AggregateRoot {
     }
 
     public static Worker create(String companyCode, String employeeNumber,
-                                String name, String phone, WorkerType workerType) {
+                                String name, String phone, WorkerType workerType, UUID actorId) {
         if (name == null || name.isBlank()) throw new DomainException("El nombre del trabajador es obligatorio");
         if (workerType == null)             throw new DomainException("El tipo de trabajador es obligatorio");
 
         Worker w = new Worker(UUID.randomUUID(), companyCode, employeeNumber,
                 name.trim(), phone, workerType, true, Instant.now());
-        w.registerEvent(new WorkerCreatedEvent(w.id, w.name));
+        w.registerEvent(new WorkerCreatedEvent(w.id, w.name, actorId));
         return w;
     }
 
     public void update(String companyCode, String employeeNumber,
-                       String name, String phone, WorkerType workerType) {
+                       String name, String phone, WorkerType workerType, UUID actorId) {
         if (name == null || name.isBlank()) throw new DomainException("El nombre del trabajador es obligatorio");
         this.companyCode    = companyCode;
         this.employeeNumber = employeeNumber;
         this.name           = name.trim();
         this.phone          = phone;
         this.workerType     = workerType;
-        registerEvent(new WorkerUpdatedEvent(this.id, this.name));
+        registerEvent(new WorkerUpdatedEvent(this.id, this.name, actorId));
     }
 
     public void deactivate() { this.active = false; }

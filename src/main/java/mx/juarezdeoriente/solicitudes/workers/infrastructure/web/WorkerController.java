@@ -1,6 +1,7 @@
 package mx.juarezdeoriente.solicitudes.workers.infrastructure.web;
 
 import jakarta.validation.Valid;
+import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.AppUserDetails;
 import mx.juarezdeoriente.solicitudes.shared.domain.model.PageResult;
 import mx.juarezdeoriente.solicitudes.shared.infrastructure.web.ApiResponse;
 import mx.juarezdeoriente.solicitudes.workers.application.service.WorkerService;
@@ -10,6 +11,7 @@ import mx.juarezdeoriente.solicitudes.workers.infrastructure.web.dto.WorkerUpdat
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -26,9 +28,12 @@ public class WorkerController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'CAPTURISTA')")
-    public ResponseEntity<ApiResponse<WorkerResponse>> create(@Valid @RequestBody WorkerRequest req) {
+    public ResponseEntity<ApiResponse<WorkerResponse>> create(
+            @Valid @RequestBody WorkerRequest req,
+            @AuthenticationPrincipal AppUserDetails principal) {
         var worker = workerService.create(req.companyCode(), req.employeeNumber(),
-                req.name(), req.phone(), req.workerType());
+                req.name(), req.phone(), req.workerType(),
+                principal != null ? principal.getId() : null);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(WorkerResponse.from(worker)));
     }
 
@@ -55,13 +60,24 @@ public class WorkerController {
     @PreAuthorize("hasAnyRole('ADMIN', 'CAPTURISTA')")
     public ResponseEntity<ApiResponse<WorkerResponse>> update(
             @PathVariable UUID id,
-            @Valid @RequestBody WorkerUpdateRequest req) {
+            @Valid @RequestBody WorkerUpdateRequest req,
+            @AuthenticationPrincipal AppUserDetails principal) {
 
         if (req.active() != null) {
             workerService.setActive(id, req.active());
         }
         var worker = workerService.update(id, req.companyCode(), req.employeeNumber(),
-                req.name(), req.phone(), req.workerType());
+                req.name(), req.phone(), req.workerType(),
+                principal != null ? principal.getId() : null);
         return ResponseEntity.ok(ApiResponse.ok(WorkerResponse.from(worker)));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> delete(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal AppUserDetails principal) {
+        workerService.delete(id, principal != null ? principal.getId() : null);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -55,6 +55,11 @@ class SupplierRepositoryAdapter implements SupplierRepository {
                 page, size, p.getTotalElements());
     }
 
+    @Override
+    public void deleteById(UUID id) {
+        jpa.deleteById(id);
+    }
+
     private SupplierJpaEntity toEntity(Supplier s) {
         SupplierJpaEntity e = new SupplierJpaEntity();
         e.setId(s.getId());
