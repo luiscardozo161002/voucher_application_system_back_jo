@@ -36,6 +36,10 @@ public class DataSeeder implements ApplicationRunner {
     @Value("${app.seeds.capturista-password:Capturista1!}")
     private String capturistaPassword;
 
+    /** false en producción: solo crea usuarios, sin datos de muestra. */
+    @Value("${app.seeds.demo-data:true}")
+    private boolean demoData;
+
     private final UserRepository             userRepository;
     private final SupplierService            supplierService;
     private final WorkerService              workerService;
@@ -62,10 +66,14 @@ public class DataSeeder implements ApplicationRunner {
             return;
         }
 
-        log.info("Aplicando seeds iniciales...");
+        log.info("Aplicando seeds iniciales... (demo-data={})", demoData);
         seedUsers();
-        seedSuppliers();
-        seedWorkers();
+        if (demoData) {
+            seedSuppliers();
+            seedWorkers();
+        } else {
+            log.info("  Modo producción: datos de muestra omitidos.");
+        }
         log.info("Seeds aplicados correctamente.");
     }
 
