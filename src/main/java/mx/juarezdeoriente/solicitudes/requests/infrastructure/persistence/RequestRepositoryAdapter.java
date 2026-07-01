@@ -102,8 +102,9 @@ class RequestRepositoryAdapter implements RequestRepository {
 
     @Override
     public long nextFolio() {
-        // Usa la secuencia PostgreSQL definida en Flyway; atómica y no reutilizable
-        return ((Number) em.createNativeQuery("SELECT nextval('folio_seq')").getSingleResult()).longValue();
+        Number result = (Number) em.createNativeQuery(
+                "SELECT COALESCE(MAX(folio), 0) + 1 FROM requests").getSingleResult();
+        return result.longValue();
     }
 
     // --- Mapeo dominio <-> JPA ---

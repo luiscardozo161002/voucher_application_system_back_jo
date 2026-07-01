@@ -70,7 +70,7 @@ class SupplierControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void crear_proveedor_duplicado_retorna_409() throws Exception {
-        when(supplierService.create(anyString(), anyString(), any()))
+        when(supplierService.create(anyString(), anyString(), any(), any()))
                 .thenThrow(new ConflictException("Ya existe un proveedor con la clave: PROV-001"));
 
         mockMvc.perform(post("/api/v1/suppliers")

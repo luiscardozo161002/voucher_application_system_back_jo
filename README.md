@@ -153,6 +153,7 @@ Copiar `.env.example` a `.env` y ajustar para producción.
 |---|---|---|
 | `SEED_ADMIN_PASSWORD` | `Admin123!` | Contraseña del usuario admin inicial |
 | `SEED_CAPTURISTA_PASSWORD` | `Capturista1!` | Contraseña del usuario capturista inicial |
+| `SEED_DEMO_DATA` | `true` | `false` = solo usuarios, proveedores y trabajadores (sin solicitudes demo). `true` = todo incluyendo solicitudes de ejemplo. Usar `false` en producción para que los folios inicien en `0000001`. |
 
 ---
 
@@ -171,11 +172,18 @@ Los datos históricos de `Solicitudes.mdb` se cargan **automáticamente** en el 
 No se requiere ninguna acción manual.
 
 ```
-[Arranque 1]  LegacyDataSeeder detecta 0 proveedores → importa:
-              154 proveedores + 164 trabajadores + 700 solicitudes históricas
+[Arranque 1]  DataSeeder crea: 2 usuarios + 3 proveedores + 3 trabajadores
+              Si SEED_DEMO_DATA=true: también crea solicitudes de ejemplo
+
+[Arranque 1]  LegacyDataSeeder detecta 0 proveedores → importa desde SQL:
+              154 proveedores + 164 trabajadores
+              Si SEED_DEMO_DATA=true: también importa ~700 solicitudes históricas
 
 [Arranque 2+] LegacyDataSeeder detecta >10 proveedores → omite silenciosamente
 ```
+
+**Producción:** usar `SEED_DEMO_DATA=false` para que los folios inicien en `0000001`.  
+**Local/desarrollo:** usar `SEED_DEMO_DATA=true` para tener datos de prueba completos.
 
 Los scripts SQL de origen están en `src/main/resources/db/legacy/` y en `dummy/` como referencia.  
 Ver `dummy/README.md` para más detalles.

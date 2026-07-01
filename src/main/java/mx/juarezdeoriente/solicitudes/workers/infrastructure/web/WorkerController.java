@@ -63,6 +63,11 @@ public class WorkerController {
             @Valid @RequestBody WorkerUpdateRequest req,
             @AuthenticationPrincipal AppUserDetails principal) {
 
+        if (req.active() != null && req.name() == null && req.companyCode() == null
+                && req.employeeNumber() == null && req.phone() == null && req.workerType() == null) {
+            var worker = workerService.setActive(id, req.active());
+            return ResponseEntity.ok(ApiResponse.ok(WorkerResponse.from(worker)));
+        }
         if (req.active() != null) {
             workerService.setActive(id, req.active());
         }

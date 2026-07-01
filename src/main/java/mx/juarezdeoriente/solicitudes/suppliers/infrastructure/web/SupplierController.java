@@ -60,6 +60,10 @@ public class SupplierController {
             @Valid @RequestBody SupplierUpdateRequest req,
             @AuthenticationPrincipal AppUserDetails principal) {
 
+        if (req.active() != null && req.name() == null && req.phone() == null) {
+            var supplier = supplierService.setActive(id, req.active());
+            return ResponseEntity.ok(ApiResponse.ok(SupplierResponse.from(supplier)));
+        }
         if (req.active() != null) {
             supplierService.setActive(id, req.active());
         }

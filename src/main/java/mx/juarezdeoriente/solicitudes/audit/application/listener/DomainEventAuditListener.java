@@ -9,6 +9,7 @@ import mx.juarezdeoriente.solicitudes.auth.domain.event.UserUpdatedEvent;
 import mx.juarezdeoriente.solicitudes.auth.domain.port.UserRepository;
 import mx.juarezdeoriente.solicitudes.requests.domain.event.RequestCancelledEvent;
 import mx.juarezdeoriente.solicitudes.requests.domain.event.RequestIssuedEvent;
+import mx.juarezdeoriente.solicitudes.suppliers.domain.port.SupplierRepository;
 import mx.juarezdeoriente.solicitudes.suppliers.domain.event.SupplierCreatedEvent;
 import mx.juarezdeoriente.solicitudes.suppliers.domain.event.SupplierDeletedEvent;
 import mx.juarezdeoriente.solicitudes.suppliers.domain.event.SupplierUpdatedEvent;
@@ -32,12 +33,15 @@ public class DomainEventAuditListener {
 
     private static final Logger log = LoggerFactory.getLogger(DomainEventAuditListener.class);
     private final AuditEventRepository auditEventRepository;
-    private final UserRepository userRepository;
+    private final UserRepository       userRepository;
+    private final SupplierRepository   supplierRepository;
 
     public DomainEventAuditListener(AuditEventRepository auditEventRepository,
-                                    UserRepository userRepository) {
+                                    UserRepository userRepository,
+                                    SupplierRepository supplierRepository) {
         this.auditEventRepository = auditEventRepository;
         this.userRepository       = userRepository;
+        this.supplierRepository   = supplierRepository;
     }
 
     @EventListener
@@ -112,16 +116,20 @@ public class DomainEventAuditListener {
 
     @EventListener
     public void on(RequestIssuedEvent event) {
+        String folioStr = String.format("%07d", event.getFolio());
+        String supplierName = supplierRepository.findById(event.getSupplierId())
+                .map(s -> s.getName()).orElse("—");
         save(event.getIssuedBy(), "REQUEST_ISSUED", "Request",
                 event.getRequestId().toString(),
-                "folio=" + event.getFolio());
+                "folio=" + folioStr + ",proveedor=" + supplierName);
     }
 
     @EventListener
     public void on(RequestCancelledEvent event) {
+        String folioStr = event.getFolio() != null ? String.format("%07d", event.getFolio()) : "—";
         save(event.getCancelledBy(), "REQUEST_CANCELLED", "Request",
                 event.getRequestId().toString(),
-                "folio=" + event.getFolio() + ",reason=" + event.getReason());
+                "folio=" + folioStr + ",motivo=" + event.getReason());
     }
 
     private void save(UUID actorId, String action, String entityType,

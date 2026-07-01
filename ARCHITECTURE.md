@@ -3,7 +3,7 @@
 **Empresa:** Juarez de Oriente S.A. de C.V.
 **Stack:** Java 21 · Spring Boot 3.3 · PostgreSQL 16 · Maven
 **Versión API:** v1 (`/api/v1/`)
-**Última actualización:** 2026-06-24
+**Última actualización:** 2026-07-01
 
 ---
 
@@ -98,6 +98,8 @@ Navegador/Postman
 | **Domain Events (Observer)** | Aggregates → AuditListener | Los servicios publican eventos sin conocer a los listeners |
 | **tokenVersion** | User → JWT → Filter | Invalidación inmediata de sesiones sin blacklist en memoria |
 | **Refresh Token Rotation** | RefreshTokenService | Un token solo se usa una vez; el reúso detecta robo y cierra todo |
+| **JpaSpecificationExecutor** | AuditEventRepository | Evita el error de PostgreSQL con parámetros null en JPQL; predicados dinámicos |
+| **MAX(folio)+1** | RequestRepository | Folio auto-incremental sin secuencia de BD; siempre inicia en `0000001` en BD vacía |
 
 ---
 
@@ -132,7 +134,8 @@ src/main/java/mx/juarezdeoriente/solicitudes/
     ├── CacheConfig.java       # @EnableCaching (Caffeine)
     ├── CorsConfig.java        # CORS configurado por entorno
     ├── CorrelationIdFilter    # X-Correlation-ID en cada petición
-    ├── DataSeeder.java        # Seeds de desarrollo (primer arranque)
+    ├── DataSeeder.java        # Seeds de desarrollo (respeta SEED_DEMO_DATA)
+    ├── LegacyDataSeeder.java  # Importa datos del sistema VB6/Access (respeta SEED_DEMO_DATA)
     └── RequestLoggingFilter   # Log de método/URI/status/duración
 ```
 
