@@ -46,7 +46,7 @@ public class WorkerController {
             @RequestParam(defaultValue = "10") int size) {
 
         PageResult<WorkerResponse> result = workerService
-                .search(q, active, workerType, Math.max(0, page), Math.min(size < 1 ? 10 : size, 100))
+                .search(q, active, workerType, Math.max(0, page), Math.min(size < 1 ? 10 : size, 500))
                 .map(WorkerResponse::from);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
