@@ -1,6 +1,6 @@
 package mx.juarezdeoriente.solicitudes.config;
 
-import mx.juarezdeoriente.solicitudes.shared.infrastructure.web.ApiResponse;
+import mx.juarezdeoriente.solicitudes.shared.web.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

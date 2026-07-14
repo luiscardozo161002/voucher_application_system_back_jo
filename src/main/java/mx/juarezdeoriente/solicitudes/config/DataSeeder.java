@@ -1,14 +1,14 @@
 package mx.juarezdeoriente.solicitudes.config;
 
-import mx.juarezdeoriente.solicitudes.auth.domain.model.Role;
-import mx.juarezdeoriente.solicitudes.auth.domain.model.User;
-import mx.juarezdeoriente.solicitudes.auth.domain.port.UserRepository;
-import mx.juarezdeoriente.solicitudes.requests.application.service.RequestService;
-import mx.juarezdeoriente.solicitudes.suppliers.application.service.SupplierService;
-import mx.juarezdeoriente.solicitudes.suppliers.domain.model.Supplier;
-import mx.juarezdeoriente.solicitudes.workers.application.service.WorkerService;
-import mx.juarezdeoriente.solicitudes.workers.domain.model.Worker;
-import mx.juarezdeoriente.solicitudes.workers.domain.model.WorkerType;
+import mx.juarezdeoriente.solicitudes.auth.Role;
+import mx.juarezdeoriente.solicitudes.auth.User;
+import mx.juarezdeoriente.solicitudes.auth.UserRepository;
+import mx.juarezdeoriente.solicitudes.requests.RequestService;
+import mx.juarezdeoriente.solicitudes.suppliers.SupplierService;
+import mx.juarezdeoriente.solicitudes.suppliers.Supplier;
+import mx.juarezdeoriente.solicitudes.workers.WorkerService;
+import mx.juarezdeoriente.solicitudes.workers.Worker;
+import mx.juarezdeoriente.solicitudes.workers.WorkerType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -95,7 +95,7 @@ public class DataSeeder implements ApplicationRunner {
                 Set.of(Role.ADMIN)
         );
         userRepository.save(admin);
-        admin.pullDomainEvents().forEach(eventPublisher::publishEvent);
+        eventPublisher.publishEvent(new mx.juarezdeoriente.solicitudes.auth.UserEvents.Created(admin.getId(), admin.getUsername()));
 
         User capturista = User.create(
                 "capturista",
@@ -105,7 +105,7 @@ public class DataSeeder implements ApplicationRunner {
                 Set.of(Role.CAPTURISTA)
         );
         userRepository.save(capturista);
-        capturista.pullDomainEvents().forEach(eventPublisher::publishEvent);
+        eventPublisher.publishEvent(new mx.juarezdeoriente.solicitudes.auth.UserEvents.Created(capturista.getId(), capturista.getUsername()));
 
         log.info("  Usuarios admin y capturista creados.");
         return admin;
