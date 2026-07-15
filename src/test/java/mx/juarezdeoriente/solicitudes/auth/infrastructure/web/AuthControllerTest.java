@@ -1,15 +1,17 @@
 package mx.juarezdeoriente.solicitudes.auth.infrastructure.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import mx.juarezdeoriente.solicitudes.auth.domain.model.Role;
-import mx.juarezdeoriente.solicitudes.auth.domain.model.User;
-import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.AppUserDetails;
-import mx.juarezdeoriente.solicitudes.auth.application.service.UserService;
-import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.AppUserDetailsService;
-import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.JwtAuthenticationFilter;
-import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.JwtService;
-import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.SecurityConfig;
-import mx.juarezdeoriente.solicitudes.auth.infrastructure.web.dto.LoginRequest;
+import mx.juarezdeoriente.solicitudes.auth.AuthController;
+import mx.juarezdeoriente.solicitudes.auth.Role;
+import mx.juarezdeoriente.solicitudes.auth.User;
+import mx.juarezdeoriente.solicitudes.auth.UserDto;
+import mx.juarezdeoriente.solicitudes.auth.UserService;
+import mx.juarezdeoriente.solicitudes.auth.security.AppUserDetails;
+import mx.juarezdeoriente.solicitudes.auth.security.AppUserDetailsService;
+import mx.juarezdeoriente.solicitudes.auth.security.JwtAuthenticationFilter;
+import mx.juarezdeoriente.solicitudes.auth.security.JwtService;
+import mx.juarezdeoriente.solicitudes.auth.security.RefreshTokenService;
+import mx.juarezdeoriente.solicitudes.auth.security.SecurityConfig;
 import mx.juarezdeoriente.solicitudes.config.CorsConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +24,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 
@@ -35,20 +36,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({ SecurityConfig.class, JwtAuthenticationFilter.class, CorsConfig.class })
 class AuthControllerTest {
 
-    @Autowired MockMvc     mockMvc;
+    @Autowired MockMvc      mockMvc;
     @Autowired ObjectMapper mapper;
 
-    @MockBean AuthenticationManager   authManager;
-    @MockBean JwtService              jwtService;
-    @MockBean mx.juarezdeoriente.solicitudes.auth.infrastructure.security.RefreshTokenService refreshTokenService;
-    @MockBean UserService userService;
-    
+    @MockBean AuthenticationManager  authManager;
+    @MockBean JwtService             jwtService;
+    @MockBean RefreshTokenService    refreshTokenService;
+    @MockBean UserService            userService;
     @MockBean AppUserDetailsService  userDetailsService;
 
     @Test
     void login_con_credenciales_validas_retorna_200_y_token() throws Exception {
         UUID userId = UUID.randomUUID();
-        User user = User.reconstitute(userId, "admin", "hash", "Administrador", null, Set.of(Role.ADMIN), true, false, 0, null, Instant.now(), 0);
+        User user = User.create("admin", "hash", "Administrador", null, Set.of(Role.ADMIN));
         AppUserDetails details = new AppUserDetails(user);
 
         when(authManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
@@ -57,16 +57,15 @@ class AuthControllerTest {
         when(jwtService.generateRefreshToken(any())).thenReturn("refresh.jwt.aqui");
         when(jwtService.getExpirationMs()).thenReturn(3600000L);
         when(jwtService.getRefreshExpirationMs()).thenReturn(604800000L);
-        when(userService.findById(userId)).thenReturn(user);
+        when(userService.findById(any())).thenReturn(user);
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(mapper.writeValueAsString(new LoginRequest("admin", "Admin123!"))))
+                        .content(mapper.writeValueAsString(new UserDto.LoginRequest("admin", "Admin123!"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.token").value("token.jwt.aqui"))
                 .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
                 .andExpect(jsonPath("$.data.user.username").value("admin"))
-                // refreshToken ya NO aparece en el body — va en cookie HttpOnly
                 .andExpect(jsonPath("$.data.refreshToken").doesNotExist())
                 .andExpect(header().exists("Set-Cookie"));
     }
@@ -77,7 +76,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(mapper.writeValueAsString(new LoginRequest("admin", "wrong"))))
+                        .content(mapper.writeValueAsString(new UserDto.LoginRequest("admin", "wrong"))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").exists());
     }

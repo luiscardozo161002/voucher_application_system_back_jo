@@ -2,15 +2,15 @@ package mx.juarezdeoriente.solicitudes.requests.infrastructure;
 
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import mx.juarezdeoriente.solicitudes.IntegrationTestBase;
-import mx.juarezdeoriente.solicitudes.auth.domain.model.Role;
-import mx.juarezdeoriente.solicitudes.auth.domain.model.User;
-import mx.juarezdeoriente.solicitudes.auth.domain.port.UserRepository;
-import mx.juarezdeoriente.solicitudes.requests.application.service.RequestService;
-import mx.juarezdeoriente.solicitudes.requests.domain.model.Request;
-import mx.juarezdeoriente.solicitudes.requests.domain.model.RequestStatus;
-import mx.juarezdeoriente.solicitudes.shared.domain.exception.DomainException;
-import mx.juarezdeoriente.solicitudes.suppliers.application.service.SupplierService;
-import mx.juarezdeoriente.solicitudes.suppliers.domain.model.Supplier;
+import mx.juarezdeoriente.solicitudes.auth.Role;
+import mx.juarezdeoriente.solicitudes.auth.User;
+import mx.juarezdeoriente.solicitudes.auth.UserRepository;
+import mx.juarezdeoriente.solicitudes.requests.Request;
+import mx.juarezdeoriente.solicitudes.requests.RequestService;
+import mx.juarezdeoriente.solicitudes.requests.RequestStatus;
+import mx.juarezdeoriente.solicitudes.shared.exception.DomainException;
+import mx.juarezdeoriente.solicitudes.suppliers.Supplier;
+import mx.juarezdeoriente.solicitudes.suppliers.SupplierService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +41,6 @@ class RequestServiceIntegrationTest extends IntegrationTestBase {
                 User.create("test_user", passwordEncoder.encode("Password1!"),
                         "Usuario de Prueba", null, Set.of(Role.CAPTURISTA))
         );
-        user.pullDomainEvents(); // descarta eventos de creación
     }
 
     @Test
@@ -69,12 +68,12 @@ class RequestServiceIntegrationTest extends IntegrationTestBase {
         requestService.addItem(draft.getId(), null, "Computadora",
                 BigDecimal.ONE, "PZA", new BigDecimal("18000.00"));
 
-        Request emitida  = requestService.issue(draft.getId());
+        Request emitida   = requestService.issue(draft.getId());
         Request cancelada = requestService.cancel(emitida.getId(), "Presupuesto cancelado", user.getId());
 
         assertThat(cancelada.getStatus()).isEqualTo(RequestStatus.CANCELADA);
         assertThat(cancelada.getCancellationReason()).isEqualTo("Presupuesto cancelado");
-        assertThat(cancelada.getFolio()).isEqualTo(emitida.getFolio()); // folio se conserva
+        assertThat(cancelada.getFolio()).isEqualTo(emitida.getFolio());
     }
 
     @Test

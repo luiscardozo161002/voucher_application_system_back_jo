@@ -1,7 +1,7 @@
 package mx.juarezdeoriente.solicitudes.requests.domain;
 
-import mx.juarezdeoriente.solicitudes.requests.domain.model.RequestItem;
-import mx.juarezdeoriente.solicitudes.shared.domain.exception.DomainException;
+import mx.juarezdeoriente.solicitudes.requests.RequestItem;
+import mx.juarezdeoriente.solicitudes.shared.exception.DomainException;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

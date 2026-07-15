@@ -1,12 +1,13 @@
 package mx.juarezdeoriente.solicitudes.shared;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import mx.juarezdeoriente.solicitudes.auth.application.service.UserService;
-import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.AppUserDetailsService;
-import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.JwtAuthenticationFilter;
-import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.JwtService;
-import mx.juarezdeoriente.solicitudes.auth.infrastructure.security.SecurityConfig;
-import mx.juarezdeoriente.solicitudes.auth.infrastructure.web.AuthController;
+import mx.juarezdeoriente.solicitudes.auth.AuthController;
+import mx.juarezdeoriente.solicitudes.auth.UserService;
+import mx.juarezdeoriente.solicitudes.auth.security.AppUserDetailsService;
+import mx.juarezdeoriente.solicitudes.auth.security.JwtAuthenticationFilter;
+import mx.juarezdeoriente.solicitudes.auth.security.JwtService;
+import mx.juarezdeoriente.solicitudes.auth.security.RefreshTokenService;
+import mx.juarezdeoriente.solicitudes.auth.security.SecurityConfig;
 import mx.juarezdeoriente.solicitudes.config.CorsConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -27,13 +28,6 @@ import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * Pruebas de casos borde de la API:
- * - Parámetros inválidos / overflow
- * - Cuerpos malformados
- * - Autenticación y autorización
- * - Validaciones de campos
- */
 @WebMvcTest(value = AuthController.class, properties = "app.rate-limit.enabled=false")
 @Import({ SecurityConfig.class, JwtAuthenticationFilter.class, CorsConfig.class })
 @DisplayName("API Edge Cases")
@@ -44,13 +38,9 @@ class ApiEdgeCasesTest {
 
     @MockBean AuthenticationManager  authManager;
     @MockBean JwtService             jwtService;
-    @MockBean mx.juarezdeoriente.solicitudes.auth.infrastructure.security.RefreshTokenService refreshTokenService;
-    @MockBean UserService userService;
+    @MockBean RefreshTokenService    refreshTokenService;
+    @MockBean UserService            userService;
     @MockBean AppUserDetailsService  userDetailsService;
-
-    // =========================================================
-    // Autenticación
-    // =========================================================
 
     @Nested
     @DisplayName("POST /api/v1/auth/login")
@@ -123,23 +113,13 @@ class ApiEdgeCasesTest {
         }
 
         @Test
-        @DisplayName("Sin Content-Type → Spring no puede leer el body (415 o error)")
+        @DisplayName("Sin Content-Type → 415 o 400")
         void sin_content_type_retorna_error() throws Exception {
-            // Sin Content-Type Spring devuelve 415 Unsupported Media Type
-            // o falla al deserializar el body — ambos indican rechazo correcto
             mockMvc.perform(post("/api/v1/auth/login")
                             .content("{\"username\":\"admin\",\"password\":\"Admin123!\"}"))
-                    .andExpect(status().is(org.hamcrest.Matchers.anyOf(
-                            org.hamcrest.Matchers.is(415),
-                            org.hamcrest.Matchers.is(400),
-                            org.hamcrest.Matchers.is(500)
-                    )));
+                    .andExpect(status().is(anyOf(is(415), is(400), is(500))));
         }
     }
-
-    // =========================================================
-    // Sin autenticación
-    // =========================================================
 
     @Nested
     @DisplayName("Endpoints protegidos sin token")
@@ -170,10 +150,6 @@ class ApiEdgeCasesTest {
         }
     }
 
-    // =========================================================
-    // Refresh Token
-    // =========================================================
-
     @Nested
     @DisplayName("POST /api/v1/auth/refresh")
     class Refresh {
@@ -181,8 +157,6 @@ class ApiEdgeCasesTest {
         @Test
         @DisplayName("Sin cookie de refresh → 422 sin sesion activa")
         void sin_cookie_retorna_422() throws Exception {
-            // El refresh token ahora viaja como HttpOnly cookie, no en el body.
-            // Sin cookie → DomainException "No hay sesion activa"
             mockMvc.perform(post("/api/v1/auth/refresh"))
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(jsonPath("$.error").value(containsString("sesion")));
@@ -200,19 +174,13 @@ class ApiEdgeCasesTest {
         }
     }
 
-    // =========================================================
-    // Método HTTP incorrecto
-    // =========================================================
-
     @Nested
     @DisplayName("Método HTTP incorrecto")
     class MetodoIncorrecto {
 
         @Test
-        @DisplayName("GET en /login → 401 (Spring Security intercepta antes de verificar método)")
-        void get_en_login_retorna_401_o_405() throws Exception {
-            // Spring Security evalúa autenticación antes de permitir que llegue a la ruta.
-            // Solo POST /login está en el allowlist; GET no tiene acceso → 401.
+        @DisplayName("GET en /login → 401 (Security intercepta antes de verificar método)")
+        void get_en_login_retorna_401() throws Exception {
             mockMvc.perform(get("/api/v1/auth/login"))
                     .andExpect(status().isUnauthorized());
         }

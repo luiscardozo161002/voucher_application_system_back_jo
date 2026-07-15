@@ -1,11 +1,9 @@
 package mx.juarezdeoriente.solicitudes.requests.domain;
 
-import mx.juarezdeoriente.solicitudes.requests.domain.event.RequestCancelledEvent;
-import mx.juarezdeoriente.solicitudes.requests.domain.event.RequestIssuedEvent;
-import mx.juarezdeoriente.solicitudes.requests.domain.model.Request;
-import mx.juarezdeoriente.solicitudes.requests.domain.model.RequestItem;
-import mx.juarezdeoriente.solicitudes.requests.domain.model.RequestStatus;
-import mx.juarezdeoriente.solicitudes.shared.domain.exception.DomainException;
+import mx.juarezdeoriente.solicitudes.requests.Request;
+import mx.juarezdeoriente.solicitudes.requests.RequestItem;
+import mx.juarezdeoriente.solicitudes.requests.RequestStatus;
+import mx.juarezdeoriente.solicitudes.shared.exception.DomainException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -16,8 +14,8 @@ import static org.assertj.core.api.Assertions.*;
 
 class RequestTest {
 
-    private static final UUID SUPPLIER_ID  = UUID.randomUUID();
-    private static final UUID CREATED_BY   = UUID.randomUUID();
+    private static final UUID SUPPLIER_ID = UUID.randomUUID();
+    private static final UUID CREATED_BY  = UUID.randomUUID();
 
     private Request draft;
 
@@ -56,18 +54,6 @@ class RequestTest {
     }
 
     @Test
-    void emitir_registra_evento_RequestIssued() {
-        draft.addItem(itemConDescripcion("Material de limpieza"));
-        draft.issue(704L);
-
-        var events = draft.pullDomainEvents();
-
-        assertThat(events).hasSize(1);
-        assertThat(events.get(0)).isInstanceOf(RequestIssuedEvent.class);
-        assertThat(((RequestIssuedEvent) events.get(0)).getFolio()).isEqualTo(704L);
-    }
-
-    @Test
     void emitir_sin_renglones_lanza_DomainException() {
         assertThatThrownBy(() -> draft.issue(704L))
                 .isInstanceOf(DomainException.class)
@@ -75,24 +61,19 @@ class RequestTest {
     }
 
     @Test
-    void cancelar_solicitud_emitida_registra_evento_y_cambia_estado() {
+    void cancelar_solicitud_emitida_cambia_estado_y_motivo() {
         draft.addItem(itemConDescripcion("Servicio de limpieza"));
         draft.issue(705L);
-        draft.pullDomainEvents();
 
         draft.cancel("Proveedor no disponible", CREATED_BY);
 
         assertThat(draft.getStatus()).isEqualTo(RequestStatus.CANCELADA);
         assertThat(draft.getCancellationReason()).isEqualTo("Proveedor no disponible");
-
-        var events = draft.pullDomainEvents();
-        assertThat(events).hasSize(1);
-        assertThat(events.get(0)).isInstanceOf(RequestCancelledEvent.class);
     }
 
     @Test
     void cancelar_sin_motivo_lanza_DomainException() {
-        draft.addItem(itemConDescripcion("ArtÃ­culo"));
+        draft.addItem(itemConDescripcion("Artículo"));
         draft.issue(706L);
 
         assertThatThrownBy(() -> draft.cancel("  ", CREATED_BY))
@@ -102,10 +83,9 @@ class RequestTest {
 
     @Test
     void cancelar_una_solicitud_ya_cancelada_lanza_DomainException() {
-        draft.addItem(itemConDescripcion("ArtÃ­culo"));
+        draft.addItem(itemConDescripcion("Artículo"));
         draft.issue(707L);
         draft.cancel("Motivo inicial", CREATED_BY);
-        draft.pullDomainEvents();
 
         assertThatThrownBy(() -> draft.cancel("Otro motivo", CREATED_BY))
                 .isInstanceOf(DomainException.class);
@@ -114,10 +94,10 @@ class RequestTest {
     @Test
     void no_se_puede_agregar_mas_de_8_renglones() {
         for (int i = 1; i <= 8; i++) {
-            draft.addItem(itemConDescripcion("ArtÃ­culo " + i));
+            draft.addItem(itemConDescripcion("Artículo " + i));
         }
 
-        assertThatThrownBy(() -> draft.addItem(itemConDescripcion("ArtÃ­culo 9")))
+        assertThatThrownBy(() -> draft.addItem(itemConDescripcion("Artículo 9")))
                 .isInstanceOf(DomainException.class)
                 .hasMessageContaining("8");
     }
@@ -126,7 +106,6 @@ class RequestTest {
     void se_puede_agregar_un_renglon_a_una_solicitud_emitida() {
         draft.addItem(itemConDescripcion("Articulo"));
         draft.issue(708L);
-        draft.pullDomainEvents();
 
         draft.addItem(itemConDescripcion("Otro articulo"));
 
@@ -134,7 +113,7 @@ class RequestTest {
     }
 
     @Test
-    void restaurar_solicitud_emitida_eliminada_vuelve_a_EMITIDA() {
+    void restaurar_solicitud_cancelada_vuelve_a_EMITIDA() {
         draft.addItem(itemConDescripcion("Articulo"));
         draft.issue(709L);
         draft.cancel("Solicitud eliminada", CREATED_BY);
@@ -150,7 +129,7 @@ class RequestTest {
 
     @Test
     void eliminar_un_renglon_reduce_la_lista() {
-        RequestItem item = itemConDescripcion("ArtÃ­culo a eliminar");
+        RequestItem item = itemConDescripcion("Artículo a eliminar");
         draft.addItem(item);
         assertThat(draft.getItems()).hasSize(1);
 
@@ -158,8 +137,6 @@ class RequestTest {
 
         assertThat(draft.getItems()).isEmpty();
     }
-
-    // ---- helpers ----
 
     private RequestItem itemConDescripcion(String descripcion) {
         return RequestItem.create(
