@@ -2,9 +2,9 @@ package mx.juarezdeoriente.solicitudes.shared.web;
 
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
-import mx.juarezdeoriente.solicitudes.shared.exception.ConflictException;
-import mx.juarezdeoriente.solicitudes.shared.exception.DomainException;
-import mx.juarezdeoriente.solicitudes.shared.exception.NotFoundException;
+import mx.juarezdeoriente.solicitudes.exception.ConflictException;
+import mx.juarezdeoriente.solicitudes.exception.DomainException;
+import mx.juarezdeoriente.solicitudes.exception.NotFoundException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
