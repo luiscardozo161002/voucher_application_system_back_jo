@@ -1,15 +1,15 @@
 package mx.juarezdeoriente.solicitudes.config;
-import mx.juarezdeoriente.solicitudes.event.UserEvents;
+import mx.juarezdeoriente.solicitudes.auth.UserEvents;
 
-import mx.juarezdeoriente.solicitudes.model.Role;
-import mx.juarezdeoriente.solicitudes.model.User;
-import mx.juarezdeoriente.solicitudes.repository.UserRepository;
-import mx.juarezdeoriente.solicitudes.service.RequestService;
-import mx.juarezdeoriente.solicitudes.service.SupplierService;
-import mx.juarezdeoriente.solicitudes.model.Supplier;
-import mx.juarezdeoriente.solicitudes.service.WorkerService;
-import mx.juarezdeoriente.solicitudes.model.Worker;
-import mx.juarezdeoriente.solicitudes.model.WorkerType;
+import mx.juarezdeoriente.solicitudes.auth.Role;
+import mx.juarezdeoriente.solicitudes.auth.User;
+import mx.juarezdeoriente.solicitudes.auth.UserRepository;
+import mx.juarezdeoriente.solicitudes.requests.RequestService;
+import mx.juarezdeoriente.solicitudes.suppliers.SupplierService;
+import mx.juarezdeoriente.solicitudes.suppliers.Supplier;
+import mx.juarezdeoriente.solicitudes.workers.WorkerService;
+import mx.juarezdeoriente.solicitudes.workers.Worker;
+import mx.juarezdeoriente.solicitudes.workers.WorkerType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -96,7 +96,7 @@ public class DataSeeder implements ApplicationRunner {
                 Set.of(Role.ADMIN)
         );
         userRepository.save(admin);
-        eventPublisher.publishEvent(new mx.juarezdeoriente.solicitudes.event.UserEvents.Created(admin.getId(), admin.getUsername()));
+        eventPublisher.publishEvent(new UserEvents.Created(admin.getId(), admin.getUsername()));
 
         User capturista = User.create(
                 "capturista",
@@ -106,7 +106,7 @@ public class DataSeeder implements ApplicationRunner {
                 Set.of(Role.CAPTURISTA)
         );
         userRepository.save(capturista);
-        eventPublisher.publishEvent(new mx.juarezdeoriente.solicitudes.event.UserEvents.Created(capturista.getId(), capturista.getUsername()));
+        eventPublisher.publishEvent(new UserEvents.Created(capturista.getId(), capturista.getUsername()));
 
         log.info("  Usuarios admin y capturista creados.");
         return admin;

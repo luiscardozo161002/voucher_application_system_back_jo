@@ -1,8 +1,8 @@
 package mx.juarezdeoriente.solicitudes.security;
-import mx.juarezdeoriente.solicitudes.model.User;
+import mx.juarezdeoriente.solicitudes.auth.User;
 
-import mx.juarezdeoriente.solicitudes.model.RefreshToken;
-import mx.juarezdeoriente.solicitudes.repository.RefreshTokenRepository;
+import mx.juarezdeoriente.solicitudes.auth.RefreshToken;
+import mx.juarezdeoriente.solicitudes.auth.RefreshTokenRepository;
 import mx.juarezdeoriente.solicitudes.exception.DomainException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;

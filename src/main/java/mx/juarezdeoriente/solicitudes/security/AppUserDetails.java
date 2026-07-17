@@ -1,7 +1,7 @@
 package mx.juarezdeoriente.solicitudes.security;
-import mx.juarezdeoriente.solicitudes.model.Role;
+import mx.juarezdeoriente.solicitudes.auth.Role;
 
-import mx.juarezdeoriente.solicitudes.model.User;
+import mx.juarezdeoriente.solicitudes.auth.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

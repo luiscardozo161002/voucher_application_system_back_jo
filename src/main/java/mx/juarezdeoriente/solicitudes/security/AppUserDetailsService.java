@@ -1,7 +1,7 @@
 package mx.juarezdeoriente.solicitudes.security;
-import mx.juarezdeoriente.solicitudes.model.User;
+import mx.juarezdeoriente.solicitudes.auth.User;
 
-import mx.juarezdeoriente.solicitudes.repository.UserRepository;
+import mx.juarezdeoriente.solicitudes.auth.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
