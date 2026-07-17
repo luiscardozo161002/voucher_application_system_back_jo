@@ -81,7 +81,7 @@ app:
   requests:
     max-items-per-request: 8
   pagination:
-    max-page-size: 100
+    max-page-size: 1000
 
   rate-limit:
     enabled: true

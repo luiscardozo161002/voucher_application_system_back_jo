@@ -1,15 +1,15 @@
 package mx.juarezdeoriente.solicitudes.config;
-import mx.juarezdeoriente.solicitudes.auth.UserEvents;
+import mx.juarezdeoriente.solicitudes.modules.users.application.UserEvents;
 
-import mx.juarezdeoriente.solicitudes.auth.Role;
-import mx.juarezdeoriente.solicitudes.auth.User;
-import mx.juarezdeoriente.solicitudes.auth.UserRepository;
-import mx.juarezdeoriente.solicitudes.requests.RequestService;
-import mx.juarezdeoriente.solicitudes.suppliers.SupplierService;
-import mx.juarezdeoriente.solicitudes.suppliers.Supplier;
-import mx.juarezdeoriente.solicitudes.workers.WorkerService;
-import mx.juarezdeoriente.solicitudes.workers.Worker;
-import mx.juarezdeoriente.solicitudes.workers.WorkerType;
+import mx.juarezdeoriente.solicitudes.modules.users.domain.Role;
+import mx.juarezdeoriente.solicitudes.modules.users.domain.User;
+import mx.juarezdeoriente.solicitudes.modules.users.infrastructure.UserRepository;
+import mx.juarezdeoriente.solicitudes.modules.requests.application.RequestService;
+import mx.juarezdeoriente.solicitudes.modules.suppliers.application.SupplierService;
+import mx.juarezdeoriente.solicitudes.modules.suppliers.domain.Supplier;
+import mx.juarezdeoriente.solicitudes.modules.workers.application.WorkerService;
+import mx.juarezdeoriente.solicitudes.modules.workers.domain.Worker;
+import mx.juarezdeoriente.solicitudes.modules.workers.domain.WorkerType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

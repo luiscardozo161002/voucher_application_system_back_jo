@@ -22,42 +22,26 @@ Migración del sistema legado VB6/Access — **Juarez de Oriente S.A. de C.V.**
 
 ## Arquitectura y patrones
 
-Este proyecto aplica **Clean Architecture (Hexagonal)** con el patrón **Observer via Domain Events**.
-
-### Capas por módulo
+Arquitectura **Modular** — cada módulo de negocio tiene sus propias capas internas:
 
 ```
-{modulo}/
-├── domain/          ← Reglas de negocio puras (sin Spring, sin JPA)
-│   ├── model/       Aggregates y Value Objects
-│   ├── event/       Domain Events (extienden DomainEvent)
-│   └── port/        Interfaces de repositorio (output ports)
-├── application/
-│   ├── port/in/     Interfaces de casos de uso (input ports)
-│   └── service/     Implementaciones de los casos de uso
-└── infrastructure/
-    ├── persistence/ JPA entities + adapters (implementan los ports)
-    └── web/         Controllers REST + DTOs
+modules/{modulo}/
+├── domain/          ← La entidad (@Entity) y sus datos
+├── application/     ← El servicio con la lógica de negocio + DTOs
+├── infrastructure/  ← El repositorio JPA (acceso a base de datos)
+└── presentation/    ← El controller REST (recibe y responde HTTP)
 ```
-
-### Por qué este patrón
-
-- El **dominio no depende de Spring ni de JPA** — se prueba con JUnit puro sin levantar contexto.
-- Los **Domain Events** desacoplan módulos: cuando se emite una solicitud, el agregado `Request` publica `RequestIssuedEvent`. El módulo de auditoría lo escucha sin que el dominio lo conozca.
-- Los **Ports & Adapters** permiten reemplazar PostgreSQL por otra BD sin tocar el dominio ni la aplicación.
 
 ### Módulos
 
-| Módulo | Responsabilidad |
-|---|---|
-| `auth` | Autenticación JWT, usuarios, roles, refresh tokens |
-| `suppliers` | Catálogo de proveedores |
-| `workers` | Catálogo de trabajadores |
-| `requests` | Solicitudes de compra — núcleo del sistema |
-| `documents` | Generación de PDF con plantilla Thymeleaf |
-| `audit` | Bitácora inmutable de eventos |
-| `shared` | Clases base: AggregateRoot, DomainEvent, PageResult, excepciones |
-| `config` | Filtros HTTP, cache, CORS, rate limiting, idempotency |
+| Módulo | Rutas | Responsabilidad |
+|---|---|---|
+| `users` | `/api/v1/auth`, `/api/v1/users` | Login JWT, usuarios, refresh tokens |
+| `suppliers` | `/api/v1/suppliers` | Catálogo de proveedores |
+| `workers` | `/api/v1/workers` | Catálogo de trabajadores |
+| `requests` | `/api/v1/requests` | Solicitudes de compra — núcleo |
+| `documents` | `/api/v1/requests/{id}/documents` | Generación y descarga de PDFs |
+| `audit` | `/api/v1/audit-events` | Bitácora inmutable de acciones |
 
 ---
 
@@ -225,22 +209,29 @@ La colección Postman con todos los endpoints documentados está en `docs/postma
 solicitudes-backend/
 ├── src/
 │   ├── main/java/.../solicitudes/
-│   │   ├── auth/          ← Autenticación y usuarios
-│   │   ├── suppliers/     ← Catálogo de proveedores
-│   │   ├── workers/       ← Catálogo de trabajadores
-│   │   ├── requests/      ← Solicitudes (núcleo)
-│   │   ├── documents/     ← Generación de PDF
-│   │   ├── audit/         ← Bitácora
-│   │   ├── shared/        ← Clases base
-│   │   └── config/        ← Configuraciones transversales
+│   │   ├── modules/
+│   │   │   ├── users/         ← Autenticación y usuarios
+│   │   │   │   ├── domain/
+│   │   │   │   ├── application/
+│   │   │   │   ├── infrastructure/
+│   │   │   │   └── presentation/
+│   │   │   ├── suppliers/     ← Catálogo de proveedores
+│   │   │   ├── workers/       ← Catálogo de trabajadores
+│   │   │   ├── requests/      ← Solicitudes (núcleo)
+│   │   │   ├── documents/     ← Generación de PDF
+│   │   │   └── audit/         ← Bitácora
+│   │   ├── security/          ← JWT y Spring Security
+│   │   ├── exception/         ← Excepciones de negocio
+│   │   ├── config/            ← Configuraciones transversales
+│   │   └── shared/            ← Utilidades compartidas
 │   └── main/resources/
-│       ├── db/migration/  ← Migraciones Flyway (V1–V5)
-│       └── templates/pdf/ ← Plantilla HTML del pedido
-├── docs/postman/          ← Colección Postman
-├── dummy/seeds/           ← Scripts SQL del sistema legado
-├── docker/                ← docker-compose y Dockerfile (opcional)
-├── ARQUITECTURA.md        ← Documentación técnica detallada
-├── .env.example           ← Plantilla de variables de entorno
+│       ├── db/migration/      ← Migraciones Flyway (V1–V8)
+│       └── templates/pdf/     ← Plantilla HTML del pedido
+├── docs/postman/              ← Colección Postman
+├── dummy/                     ← Scripts SQL del sistema legado
+├── docker/                    ← docker-compose y Dockerfile
+├── ARCHITECTURE.md            ← Documentación técnica detallada
+├── .env.example               ← Plantilla de variables de entorno
 └── pom.xml
 ```
 
@@ -248,10 +239,9 @@ solicitudes-backend/
 
 ## Documentación adicional
 
-Ver [`ARQUITECTURA.md`](ARQUITECTURA.md) para:
-- Diagramas de componentes y ER
+Ver [`ARCHITECTURE.md`](ARCHITECTURE.md) para:
+- Diagrama de componentes y modelo ER
 - Modelo de seguridad JWT detallado
 - Guía para agregar nuevos módulos
-- Estrategia de testing
 - Checklist de producción
-- Roadmap
+- Roadmap y decisiones de diseño
