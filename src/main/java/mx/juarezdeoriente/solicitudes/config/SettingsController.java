@@ -26,9 +26,24 @@ public class SettingsController {
     public ResponseEntity<ApiResponse<SettingsResponse>> getSettings() {
         return ResponseEntity.ok(ApiResponse.ok(new SettingsResponse(
                 company.getName(),
+                company.getAddress(),
+                company.getCityLine(),
+                company.getPostalCode(),
+                company.getRfc(),
+                company.getPhone(),
+                company.getExtension(),
                 company.getAuthorizers() != null ? company.getAuthorizers() : List.of()
         )));
     }
 
-    public record SettingsResponse(String companyName, List<String> authorizers) {}
+    public record SettingsResponse(
+            String companyName,
+            String companyAddress,
+            String companyCityLine,
+            String companyPostalCode,
+            String companyRfc,
+            String companyPhone,
+            String companyExtension,
+            List<String> authorizers
+    ) {}
 }

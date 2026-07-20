@@ -32,6 +32,12 @@ public class RequestDto {
             String authorizer
     ) {}
 
+    public record UpdateRequest(
+            UUID supplierId,
+            @Size(max = 1000, message = "El destino no puede exceder 1000 caracteres") String destination,
+            String authorizer
+    ) {}
+
     public record AddItemRequest(
             UUID workerId,
             @NotBlank(message = "La descripcion es obligatoria")

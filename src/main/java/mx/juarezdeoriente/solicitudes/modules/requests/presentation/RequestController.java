@@ -93,7 +93,7 @@ public class RequestController {
     @PreAuthorize("hasAnyRole('ADMIN', 'CAPTURISTA')")
     public ResponseEntity<ApiResponse<RequestDto.Response>> updateRequest(
             @PathVariable UUID id,
-            @Valid @RequestBody RequestDto.CreateDraftRequest req) {
+            @Valid @RequestBody RequestDto.UpdateRequest req) {
 
         var request = requestService.updateRequest(id, req.supplierId(), req.destination(), req.authorizer());
         return ResponseEntity.ok(ApiResponse.ok(RequestDto.Response.from(request)));

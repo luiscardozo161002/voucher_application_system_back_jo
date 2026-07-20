@@ -109,19 +109,6 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
-        <!-- Plantillas HTML para PDF -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-thymeleaf</artifactId>
-        </dependency>
-
-        <!-- Generación de PDF desde HTML (Flying Saucer + OpenPDF) -->
-        <dependency>
-            <groupId>org.xhtmlrenderer</groupId>
-            <artifactId>flying-saucer-pdf-openpdf</artifactId>
-            <version>9.1.22</version>
-        </dependency>
-
         <!-- Testcontainers para pruebas de integración -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -1,13 +1,7 @@
 package mx.juarezdeoriente.solicitudes.modules.documents.presentation;
-import mx.juarezdeoriente.solicitudes.exception.NotFoundException;
-import mx.juarezdeoriente.solicitudes.security.AppUserDetails;
-import mx.juarezdeoriente.solicitudes.modules.documents.application.PdfGeneratorService;
 import mx.juarezdeoriente.solicitudes.modules.documents.infrastructure.RequestDocumentRepository;
 import mx.juarezdeoriente.solicitudes.modules.documents.domain.RequestDocument;
-
 import mx.juarezdeoriente.solicitudes.shared.web.ApiResponse;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,24 +13,10 @@ import java.util.UUID;
 @RequestMapping("/api/v1/requests")
 public class DocumentController {
 
-    private final PdfGeneratorService       pdfGeneratorService;
     private final RequestDocumentRepository documentRepository;
 
-    public DocumentController(PdfGeneratorService pdfGeneratorService,
-                              RequestDocumentRepository documentRepository) {
-        this.pdfGeneratorService = pdfGeneratorService;
-        this.documentRepository  = documentRepository;
-    }
-
-    @GetMapping(value = "/{id}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
-    public ResponseEntity<byte[]> getPdf(@PathVariable UUID id) {
-        byte[] pdf = pdfGeneratorService.generateForRequest(id);
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "inline; filename=\"solicitud-" + id + ".pdf\"")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(pdf);
+    public DocumentController(RequestDocumentRepository documentRepository) {
+        this.documentRepository = documentRepository;
     }
 
     @GetMapping("/{id}/documents")

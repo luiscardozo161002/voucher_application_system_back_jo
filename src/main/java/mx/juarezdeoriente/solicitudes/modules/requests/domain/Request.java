@@ -117,25 +117,18 @@ public class Request {
 
     public void updateDraft(UUID supplierId, String destination, String authorizer) {
         ensureEditable();
-        if (supplierId == null) throw new DomainException("El proveedor es obligatorio");
-        if (destination == null || destination.isBlank())
-            throw new DomainException("El destino/propósito es obligatorio");
-
-        this.supplierId  = supplierId;
-        this.destination = destination.trim();
-        this.authorizer  = authorizer;
-        this.updatedAt   = Instant.now();
+        if (supplierId != null) this.supplierId = supplierId;
+        if (destination != null && !destination.isBlank()) this.destination = destination.trim();
+        this.authorizer = authorizer;
+        this.updatedAt  = Instant.now();
     }
 
     public void updateIssued(String destination, String authorizer) {
         if (status == RequestStatus.CANCELADA)
             throw new DomainException("No se puede modificar una solicitud cancelada");
-        if (destination == null || destination.isBlank())
-            throw new DomainException("El destino/propósito es obligatorio");
-
-        this.destination = destination.trim();
-        this.authorizer  = authorizer;
-        this.updatedAt   = Instant.now();
+        if (destination != null && !destination.isBlank()) this.destination = destination.trim();
+        this.authorizer = authorizer;
+        this.updatedAt  = Instant.now();
     }
 
     public void issue(long folio) {
