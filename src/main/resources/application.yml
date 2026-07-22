@@ -36,6 +36,7 @@ spring:
 server:
   port: ${PORT:8081}
   shutdown: graceful
+  forward-headers-strategy: framework
   compression:
     enabled: true
     mime-types: application/json,application/pdf,text/html
