@@ -44,7 +44,7 @@ public class RequestController {
                         i.workerId(), i.description(), i.quantity(), i.unit(), i.unitCost()))
                 .toList();
 
-        var request = requestService.createAndIssue(
+        var request = requestService.create(
                 req.supplierId(), req.solicitanteId(), req.destination(),
                 req.authorizer(), currentUser.getId(), items);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(RequestDto.Response.from(request)));
@@ -95,7 +95,7 @@ public class RequestController {
             @PathVariable UUID id,
             @Valid @RequestBody RequestDto.UpdateRequest req) {
 
-        var request = requestService.updateRequest(id, req.supplierId(), req.destination(), req.authorizer());
+        var request = requestService.updateRequest(id, req.supplierId(), req.solicitanteId(), req.destination(), req.authorizer());
         return ResponseEntity.ok(ApiResponse.ok(RequestDto.Response.from(request)));
     }
 
@@ -127,12 +127,6 @@ public class RequestController {
             @PathVariable UUID id, @PathVariable UUID itemId) {
 
         return ResponseEntity.ok(ApiResponse.ok(RequestDto.Response.from(requestService.removeItem(id, itemId))));
-    }
-
-    @PostMapping("/{id}/issue")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CAPTURISTA')")
-    public ResponseEntity<ApiResponse<RequestDto.Response>> issue(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(RequestDto.Response.from(requestService.issue(id))));
     }
 
     @PostMapping("/{id}/cancel")
@@ -189,13 +183,12 @@ public class RequestController {
 
         UUID filterBy = security.ownerFilter(currentUser);
 
-        long borradores = requestService.countByStatus(RequestStatus.BORRADOR,  filterBy);
         long emitidas   = requestService.countByStatus(RequestStatus.EMITIDA,   filterBy);
         long canceladas = requestService.countByStatus(RequestStatus.CANCELADA, filterBy);
         var  recent     = requestService.search(null, null, null, null, null, null, filterBy, 0, 5, true).content();
 
         return ResponseEntity.ok(ApiResponse.ok(new RequestDto.StatsResponse(
-                borradores, emitidas, canceladas,
+                emitidas, canceladas,
                 recent.stream().map(RequestDto.Response::from).toList()
         )));
     }

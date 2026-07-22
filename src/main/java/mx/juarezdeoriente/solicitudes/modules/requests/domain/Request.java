@@ -68,23 +68,24 @@ public class Request {
 
     protected Request() {}
 
-    public static Request createDraft(UUID supplierId, UUID solicitanteId,
-                                      String destination, String authorizer, UUID createdBy) {
+    public static Request create(UUID supplierId, UUID solicitanteId,
+                                 String destination, String authorizer, UUID createdBy, long folio) {
         if (supplierId == null) throw new DomainException("El proveedor es obligatorio");
         if (destination == null || destination.isBlank())
             throw new DomainException("El destino/propósito es obligatorio");
 
         Request r = new Request();
-        r.id          = UUID.randomUUID();
-        r.folio       = null;
-        r.status      = RequestStatus.BORRADOR;
-        r.supplierId  = supplierId;
+        r.id            = UUID.randomUUID();
+        r.folio         = folio;
+        r.status        = RequestStatus.EMITIDA;
+        r.supplierId    = supplierId;
         r.solicitanteId = solicitanteId;
-        r.destination = destination.trim();
-        r.authorizer  = authorizer;
-        r.createdBy   = createdBy;
-        r.createdAt   = Instant.now();
-        r.updatedAt   = r.createdAt;
+        r.destination   = destination.trim();
+        r.authorizer    = authorizer;
+        r.createdBy     = createdBy;
+        r.createdAt     = Instant.now();
+        r.issuedAt      = r.createdAt;
+        r.updatedAt     = r.createdAt;
         return r;
     }
 
@@ -115,31 +116,14 @@ public class Request {
         item.update(workerId, description, quantity, unit, unitCost);
     }
 
-    public void updateDraft(UUID supplierId, String destination, String authorizer) {
-        ensureEditable();
-        if (supplierId != null) this.supplierId = supplierId;
-        if (destination != null && !destination.isBlank()) this.destination = destination.trim();
-        this.authorizer = authorizer;
-        this.updatedAt  = Instant.now();
-    }
-
-    public void updateIssued(String destination, String authorizer) {
+    public void update(UUID supplierId, UUID solicitanteId, String destination, String authorizer) {
         if (status == RequestStatus.CANCELADA)
             throw new DomainException("No se puede modificar una solicitud cancelada");
+        if (supplierId != null) this.supplierId = supplierId;
+        this.solicitanteId = solicitanteId;
         if (destination != null && !destination.isBlank()) this.destination = destination.trim();
         this.authorizer = authorizer;
         this.updatedAt  = Instant.now();
-    }
-
-    public void issue(long folio) {
-        ensureEditable();
-        if (items.isEmpty()) {
-            throw new DomainException("La solicitud debe tener al menos un renglón antes de emitirse");
-        }
-        this.folio     = folio;
-        this.status    = RequestStatus.EMITIDA;
-        this.issuedAt  = Instant.now();
-        this.updatedAt = this.issuedAt;
     }
 
     public void cancel(String reason, UUID cancelledBy) {
@@ -159,16 +143,10 @@ public class Request {
         if (status != RequestStatus.CANCELADA) {
             throw new DomainException("Solo se pueden restaurar solicitudes canceladas");
         }
-        this.status             = (folio != null || issuedAt != null) ? RequestStatus.EMITIDA : RequestStatus.BORRADOR;
+        this.status             = RequestStatus.EMITIDA;
         this.cancelledAt        = null;
         this.cancellationReason = null;
         this.updatedAt          = Instant.now();
-    }
-
-    private void ensureEditable() {
-        if (status != RequestStatus.BORRADOR) {
-            throw new DomainException("Solo se pueden modificar solicitudes en estado BORRADOR");
-        }
     }
 
     public UUID getId()                  { return id; }

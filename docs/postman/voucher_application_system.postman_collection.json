@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Sistema de Solicitudes — Juarez de Oriente",
-    "description": "## Instrucciones\n1. Ejecuta **Auth / Login** primero. El token se guarda automáticamente.\n2. Ejecuta **Buscar proveedores** y **Buscar trabajadores** para obtener sus IDs.\n3. El flujo de solicitud es: Crear borrador → Agregar renglón → Emitir → Descargar PDF.\n\n## Datos de prueba (seeds)\n**Usuarios:** admin/Admin123! (ADMIN) | capturista/Capturista1! (CAPTURISTA)\n**Proveedores:** PROV-001, PROV-002, PROV-003\n**Trabajadores:** EMP-001 Juan Carlos, EMP-002 Maria Guadalupe, EMP-003 Pedro",
+    "description": "## Instrucciones\n1. Ejecuta **Auth / Login** primero. El token se guarda automáticamente en {{token}}.\n2. Ejecuta **Buscar proveedores** y **Buscar trabajadores** para obtener sus IDs.\n3. El flujo es: **Crear y emitir solicitud** (incluye artículos en el body) → editar con PATCH si es necesario → cancelar/restaurar.\n\n## Notas importantes\n- `POST /requests` crea y emite en un solo paso — no hay endpoint separado para crear borrador.\n- `solicitanteId` solo se puede definir al crear la solicitud; el PATCH no lo soporta (limitación del backend).\n- El PDF se genera en el frontend; no existe endpoint de PDF en el backend.\n\n## Datos de prueba (seeds)\n**Usuarios:** admin/Admin123! (ADMIN) | capturista/Capturista1! (CAPTURISTA)\n**Proveedores:** PROV-001, PROV-002, PROV-003\n**Trabajadores:** EMP-001 Juan Carlos, EMP-002 Maria Guadalupe, EMP-003 Pedro",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -32,9 +32,26 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1","auth","login"] },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] },
             "body": { "mode": "raw", "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"Admin123!\"\n}", "options": { "raw": { "language": "json" } } },
-            "description": "Credenciales disponibles:\n- admin / Admin123! (ADMIN - acceso total)\n- capturista / Capturista1! (CAPTURISTA)\n\nEl token JWT se guarda en {{token}} automáticamente."
+            "description": "Credenciales disponibles:\n- admin / Admin123! (ADMIN — acceso total)\n- capturista / Capturista1! (CAPTURISTA)\n\nEl token JWT se guarda en {{token}} y el userId en {{userId}} automáticamente."
+          }
+        },
+        {
+          "name": "Refresh token",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.data && json.data.token) {",
+            "    pm.collectionVariables.set('token', json.data.token);",
+            "    pm.test('Token renovado', () => pm.response.to.have.status(200));",
+            "    console.log('Token renovado correctamente');",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","refresh"] },
+            "description": "Renueva el access token usando el refresh token almacenado en cookie HttpOnly.\nNo requiere body ni header Authorization — usa la cookie de sesión.\nActualiza {{token}} automáticamente."
           }
         },
         {
@@ -42,7 +59,7 @@
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "v1","auth","me"] },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/me", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","me"] },
             "description": "Retorna los datos del usuario autenticado actualmente."
           }
         },
@@ -51,7 +68,7 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/auth/change-password", "host": ["{{baseUrl}}"], "path": ["api", "v1","auth","change-password"] },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/change-password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","change-password"] },
             "body": { "mode": "raw", "raw": "{\n  \"currentPassword\": \"Admin123!\",\n  \"newPassword\": \"NuevoAdmin123!\"\n}", "options": { "raw": { "language": "json" } } }
           }
         },
@@ -60,7 +77,8 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "v1","auth","logout"] }
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","logout"] },
+            "description": "Invalida el refresh token (cookie). El access token sigue válido hasta que expire."
           }
         }
       ]
@@ -74,7 +92,9 @@
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/users?page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api", "v1","users"],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users?page=0&size=20",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","users"],
               "query": [{ "key": "page", "value": "0" }, { "key": "size", "value": "20" }]
             }
           }
@@ -84,8 +104,8 @@
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","users","{{userId}}"] },
-            "description": "{{userId}} se guarda automáticamente al hacer Login."
+            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","users","{{userId}}"] },
+            "description": "{{userId}} se guarda automáticamente al hacer Login o Crear usuario."
           }
         },
         {
@@ -97,9 +117,9 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/users", "host": ["{{baseUrl}}"], "path": ["api", "v1","users"] },
+            "url": { "raw": "{{baseUrl}}/api/v1/users", "host": ["{{baseUrl}}"], "path": ["api","v1","users"] },
             "body": { "mode": "raw", "raw": "{\n  \"username\": \"auditor1\",\n  \"password\": \"Auditor123!\",\n  \"displayName\": \"Auditor de Prueba\",\n  \"phone\": \"773-300-0001\",\n  \"roles\": [\"AUDITOR\"]\n}", "options": { "raw": { "language": "json" } } },
-            "description": "Roles disponibles: ADMIN | CAPTURISTA | AUTORIZADOR | AUDITOR\nLa contraseña debe tener mínimo 8 caracteres."
+            "description": "Roles disponibles: ADMIN | CAPTURISTA | AUTORIZADOR | AUDITOR\nLa contraseña debe tener mínimo 8 caracteres, una mayúscula y un número."
           }
         },
         {
@@ -107,9 +127,18 @@
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","users","{{userId}}"] },
+            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","users","{{userId}}"] },
             "body": { "mode": "raw", "raw": "{\n  \"displayName\": \"Nombre Actualizado\",\n  \"phone\": \"773-999-9999\",\n  \"roles\": [\"CAPTURISTA\"],\n  \"active\": true\n}", "options": { "raw": { "language": "json" } } },
             "description": "Todos los campos son opcionales. active: false desactiva al usuario."
+          }
+        },
+        {
+          "name": "Eliminar usuario",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","users","{{userId}}"] },
+            "description": "Elimina el usuario permanentemente. Solo ADMIN.\nNo se puede eliminar al propio usuario autenticado."
           }
         }
       ]
@@ -132,9 +161,11 @@
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/suppliers?page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api", "v1","suppliers"],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/suppliers?page=0&size=20",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","suppliers"],
               "query": [
-                { "key": "q",      "value": "",     "disabled": true,  "description": "Texto libre: busca en clave (PROV-001) o nombre (UNION SERVICIOS)" },
+                { "key": "q",      "value": "",     "disabled": true,  "description": "Texto libre: busca en clave (PROV-001) o nombre" },
                 { "key": "active", "value": "true", "disabled": true,  "description": "true = activos | false = inactivos | omitir = todos" },
                 { "key": "page",   "value": "0" },
                 { "key": "size",   "value": "20" }
@@ -148,7 +179,7 @@
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/suppliers/{{supplierId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","suppliers","{{supplierId}}"] }
+            "url": { "raw": "{{baseUrl}}/api/v1/suppliers/{{supplierId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","suppliers","{{supplierId}}"] }
           }
         },
         {
@@ -160,7 +191,7 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/suppliers", "host": ["{{baseUrl}}"], "path": ["api", "v1","suppliers"] },
+            "url": { "raw": "{{baseUrl}}/api/v1/suppliers", "host": ["{{baseUrl}}"], "path": ["api","v1","suppliers"] },
             "body": { "mode": "raw", "raw": "{\n  \"code\": \"PROV-004\",\n  \"name\": \"PAPELERIA Y OFICINA CENTRAL\",\n  \"phone\": \"773-400-0004\"\n}", "options": { "raw": { "language": "json" } } },
             "description": "La clave (code) debe ser única. Se normaliza a mayúsculas automáticamente."
           }
@@ -170,7 +201,7 @@
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/suppliers/{{supplierId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","suppliers","{{supplierId}}"] },
+            "url": { "raw": "{{baseUrl}}/api/v1/suppliers/{{supplierId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","suppliers","{{supplierId}}"] },
             "body": { "mode": "raw", "raw": "{\n  \"name\": \"PAPELERIA Y OFICINA CENTRAL ACTUALIZADA\",\n  \"phone\": \"773-400-9999\",\n  \"active\": true\n}", "options": { "raw": { "language": "json" } } }
           }
         },
@@ -179,7 +210,7 @@
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/suppliers/{{supplierId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","suppliers","{{supplierId}}"] },
+            "url": { "raw": "{{baseUrl}}/api/v1/suppliers/{{supplierId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","suppliers","{{supplierId}}"] },
             "body": { "mode": "raw", "raw": "{\n  \"active\": false\n}", "options": { "raw": { "language": "json" } } }
           }
         }
@@ -203,9 +234,11 @@
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/workers?page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api", "v1","workers"],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/workers?page=0&size=20",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","workers"],
               "query": [
-                { "key": "q",      "value": "",     "disabled": true, "description": "Busca en nombre (JUAN), clave empresa (EMP-001) o numero empleado (0001)" },
+                { "key": "q",      "value": "",     "disabled": true, "description": "Busca en nombre, clave empresa (EMP-001) o numero empleado" },
                 { "key": "active", "value": "true", "disabled": true, "description": "true = activos | false = inactivos | omitir = todos" },
                 { "key": "page",   "value": "0" },
                 { "key": "size",   "value": "20" }
@@ -219,7 +252,7 @@
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/workers/{{workerId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","workers","{{workerId}}"] }
+            "url": { "raw": "{{baseUrl}}/api/v1/workers/{{workerId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","workers","{{workerId}}"] }
           }
         },
         {
@@ -231,7 +264,7 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/workers", "host": ["{{baseUrl}}"], "path": ["api", "v1","workers"] },
+            "url": { "raw": "{{baseUrl}}/api/v1/workers", "host": ["{{baseUrl}}"], "path": ["api","v1","workers"] },
             "body": { "mode": "raw", "raw": "{\n  \"companyCode\": \"EMP-004\",\n  \"employeeNumber\": \"0004\",\n  \"name\": \"ANA LUCIA GOMEZ RAMIREZ\",\n  \"phone\": \"773-500-0004\",\n  \"workerType\": \"SOCIO\"\n}", "options": { "raw": { "language": "json" } } },
             "description": "workerType: SOCIO o EVENTUAL\ncompanyCode y employeeNumber son opcionales."
           }
@@ -241,7 +274,7 @@
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/workers/{{workerId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","workers","{{workerId}}"] },
+            "url": { "raw": "{{baseUrl}}/api/v1/workers/{{workerId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","workers","{{workerId}}"] },
             "body": { "mode": "raw", "raw": "{\n  \"name\": \"ANA LUCIA GOMEZ ACTUALIZADA\",\n  \"workerType\": \"SOCIO\",\n  \"active\": true\n}", "options": { "raw": { "language": "json" } } }
           }
         }
@@ -249,26 +282,39 @@
     },
     {
       "name": "Solicitudes",
-      "description": "Flujo completo:\n1. Buscar proveedores → obtener supplierId\n2. Buscar trabajadores → obtener workerId\n3. Crear borrador\n4. Agregar renglones (maximo 8)\n5. Emitir solicitud (asigna folio)\n6. Descargar PDF\n7. Cancelar (opcional)",
+      "description": "Flujo principal:\n1. Buscar proveedores → obtener supplierId\n2. Buscar trabajadores → obtener workerId (opcional para el solicitante)\n3. Crear y emitir solicitud (incluye artículos en el body)\n4. Editar campos con PATCH si es necesario\n5. Cancelar o restaurar según sea el caso\n\nNOTA: solicitanteId solo se puede asignar al crear la solicitud. El PATCH no lo soporta.",
       "item": [
         {
           "name": "Buscar solicitudes",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/requests?page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests"],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/requests?page=0&size=20",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","requests"],
               "query": [
-                { "key": "folio",      "value": "704",            "disabled": true, "description": "Numero de folio (ej: 704, 705). Es un numero, NO el codigo del proveedor." },
-                { "key": "supplierId", "value": "{{supplierId}}", "disabled": true, "description": "UUID del proveedor. Primero ejecuta Buscar proveedores." },
-                { "key": "workerId",   "value": "{{workerId}}",   "disabled": true, "description": "UUID del trabajador. Primero ejecuta Buscar trabajadores." },
-                { "key": "status",     "value": "EMITIDA",        "disabled": true, "description": "BORRADOR | EMITIDA | CANCELADA" },
-                { "key": "from",       "value": "2024-01-01T00:00:00Z", "disabled": true, "description": "Fecha inicio formato ISO 8601 (ej: 2024-01-01T00:00:00Z)" },
-                { "key": "to",         "value": "2026-12-31T23:59:59Z", "disabled": true, "description": "Fecha fin formato ISO 8601" },
-                { "key": "page",       "value": "0",  "description": "Pagina (inicia en 0)" },
-                { "key": "size",       "value": "20", "description": "Resultados por pagina" }
+                { "key": "folio",           "value": "704",            "disabled": true, "description": "Número de folio exacto (ej: 704). Es un número, NO el código del proveedor." },
+                { "key": "supplierId",      "value": "{{supplierId}}", "disabled": true, "description": "UUID del proveedor. Primero ejecuta Buscar proveedores." },
+                { "key": "workerId",        "value": "{{workerId}}",   "disabled": true, "description": "UUID del trabajador en algún renglón. Primero ejecuta Buscar trabajadores." },
+                { "key": "status",          "value": "EMITIDA",        "disabled": true, "description": "BORRADOR | EMITIDA | CANCELADA" },
+                { "key": "createdBy",       "value": "{{userId}}",     "disabled": true, "description": "UUID del usuario que creó la solicitud." },
+                { "key": "from",            "value": "2024-01-01T00:00:00Z", "disabled": true, "description": "Fecha inicio ISO 8601" },
+                { "key": "to",              "value": "2026-12-31T23:59:59Z", "disabled": true, "description": "Fecha fin ISO 8601" },
+                { "key": "excludeCancelled","value": "false",          "disabled": true, "description": "true = excluye CANCELADA de los resultados" },
+                { "key": "page",            "value": "0" },
+                { "key": "size",            "value": "20" }
               ]
             },
-            "description": "Todos los filtros son opcionales — activalos individualmente.\n\nATENCION: el param 'folio' es el numero de pedido (704, 705...), NO el codigo del proveedor."
+            "description": "CAPTURISTA solo ve sus propias solicitudes — el filtro createdBy se aplica automáticamente.\nADMIN ve todas a menos que especifique createdBy."
+          }
+        },
+        {
+          "name": "Estadísticas",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/stats", "host": ["{{baseUrl}}"], "path": ["api","v1","requests","stats"] },
+            "description": "Retorna conteo de BORRADOR, EMITIDA y CANCELADA, más las 5 solicitudes más recientes.\nCAPTURISTA solo ve sus propias estadísticas; ADMIN ve totales."
           }
         },
         {
@@ -276,28 +322,43 @@
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests","{{requestId}}"] },
-            "description": "{{requestId}} se guarda automáticamente al crear un borrador."
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","requests","{{requestId}}"] },
+            "description": "{{requestId}} se guarda automáticamente al crear una solicitud."
           }
         },
         {
-          "name": "Crear borrador",
+          "name": "Crear y emitir solicitud",
           "event": [{ "listen": "test", "script": { "exec": [
             "const json = pm.response.json();",
             "if (json.data) {",
             "    pm.collectionVariables.set('requestId', json.data.id);",
-            "    pm.test('Borrador creado (201)', () => pm.response.to.have.status(201));",
-            "    pm.test('Estado BORRADOR', () => pm.expect(json.data.status).to.eql('BORRADOR'));",
+            "    if (json.data.items && json.data.items.length > 0) {",
+            "        pm.collectionVariables.set('itemId', json.data.items[0].id);",
+            "        console.log('itemId del primer renglón guardado:', json.data.items[0].id);",
+            "    }",
+            "    pm.test('Solicitud creada (201)', () => pm.response.to.have.status(201));",
+            "    pm.test('Estado EMITIDA', () => pm.expect(json.data.status).to.eql('EMITIDA'));",
+            "    pm.test('Folio asignado', () => pm.expect(json.data.folio).to.be.a('number'));",
             "    console.log('requestId guardado:', json.data.id);",
-            "    console.log('Estado:', json.data.status, '| Folio: se asigna al emitir');",
+            "    console.log('Folio:', json.data.folioFormatted, '| Renglones:', json.data.items.length);",
             "}"
           ]}}],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/requests", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests"] },
-            "body": { "mode": "raw", "raw": "{\n  \"supplierId\": \"{{supplierId}}\",\n  \"destination\": \"Mantenimiento preventivo de instalaciones — planta baja\",\n  \"authorizer\": \"Sr. Miguel Angel Luna\"\n}", "options": { "raw": { "language": "json" } } },
-            "description": "REQUISITO: ejecutar Buscar proveedores primero para que {{supplierId}} tenga valor.\n\nsupplierId: UUID del proveedor (obligatorio)\ndestination: descripcion del uso de los articulos (obligatorio)\nauthorizer: nombre de quien autoriza (opcional)"
+            "url": { "raw": "{{baseUrl}}/api/v1/requests", "host": ["{{baseUrl}}"], "path": ["api","v1","requests"] },
+            "body": { "mode": "raw", "raw": "{\n  \"supplierId\": \"{{supplierId}}\",\n  \"solicitanteId\": \"{{workerId}}\",\n  \"destination\": \"Mantenimiento preventivo de instalaciones — planta baja\",\n  \"authorizer\": \"Sr. Miguel Angel Luna\",\n  \"items\": [\n    {\n      \"workerId\": \"{{workerId}}\",\n      \"description\": \"PINTURA VINILICA BLANCA EN GALON\",\n      \"quantity\": 4,\n      \"unit\": \"GAL\",\n      \"unitCost\": 185.50\n    },\n    {\n      \"workerId\": null,\n      \"description\": \"BROCHA DE 4 PULGADAS\",\n      \"quantity\": 6,\n      \"unit\": \"PZA\",\n      \"unitCost\": 45.00\n    }\n  ]\n}", "options": { "raw": { "language": "json" } } },
+            "description": "Crea y emite la solicitud en un solo paso. Requiere al menos un artículo en items.\n\nCampos:\n- supplierId: UUID del proveedor (obligatorio)\n- solicitanteId: UUID del trabajador solicitante (opcional) — solo se puede asignar aquí, no en el PATCH\n- destination: descripción del uso (obligatorio, máx 1000 caracteres)\n- authorizer: nombre de quien autoriza (opcional)\n- items: array con al menos 1 artículo (obligatorio)\n  - workerId: UUID del trabajador del renglón (opcional, puede ser null)\n  - description: descripción del artículo (obligatorio)\n  - quantity, unit, unitCost: opcionales\n\nEl folio se asigna automáticamente y la solicitud queda en estado EMITIDA."
+          }
+        },
+        {
+          "name": "Actualizar solicitud",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","requests","{{requestId}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"supplierId\": \"{{supplierId}}\",\n  \"solicitanteId\": \"{{workerId}}\",\n  \"destination\": \"Destino actualizado — area de mantenimiento\",\n  \"authorizer\": \"Ing. Carlos Mendoza\"\n}", "options": { "raw": { "language": "json" } } },
+            "description": "Actualiza campos de la solicitud. Aplica a BORRADOR y EMITIDA.\n\nCampos soportados:\n- supplierId: UUID del nuevo proveedor (opcional)\n- solicitanteId: UUID del nuevo solicitante, o null para quitarlo (opcional)\n- destination: texto de destino/propósito (opcional)\n- authorizer: nombre del autorizador (opcional)\n\nTodos los campos son opcionales — solo se aplican los que vengan en el body."
           }
         },
         {
@@ -308,25 +369,25 @@
             "    const last = json.data.items[json.data.items.length - 1];",
             "    pm.collectionVariables.set('itemId', last.id);",
             "    console.log('itemId guardado:', last.id);",
-            "    console.log('Renglones:', json.data.items.length, '/ 8 maximo');",
+            "    console.log('Total renglones:', json.data.items.length);",
             "}"
           ]}}],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/items", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests","{{requestId}}","items"] },
-            "body": { "mode": "raw", "raw": "{\n  \"workerId\": \"{{workerId}}\",\n  \"description\": \"PINTURA VINILICA BLANCA EN GALON\",\n  \"quantity\": 4,\n  \"unit\": \"GAL\",\n  \"unitCost\": 185.50\n}", "options": { "raw": { "language": "json" } } },
-            "description": "Campos:\n- workerId: UUID del trabajador (opcional, puede ser null)\n- description: descripcion del articulo o servicio (obligatorio)\n- quantity: cantidad numerica (opcional)\n- unit: GAL, PZA, KG, LT, M2, etc. (opcional)\n- unitCost: precio unitario (opcional)\n\nEl total = quantity x unitCost se calcula en el servidor.\nMaximo 8 renglones por solicitud."
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/items", "host": ["{{baseUrl}}"], "path": ["api","v1","requests","{{requestId}}","items"] },
+            "body": { "mode": "raw", "raw": "{\n  \"workerId\": \"{{workerId}}\",\n  \"description\": \"SELLADOR ACRILICO EN CUÑETE\",\n  \"quantity\": 2,\n  \"unit\": \"CUÑ\",\n  \"unitCost\": 320.00\n}", "options": { "raw": { "language": "json" } } },
+            "description": "Agrega un renglón a la solicitud. Funciona en estado BORRADOR y EMITIDA.\n\nCampos:\n- workerId: UUID del trabajador (opcional, puede ser null)\n- description: descripción del artículo (obligatorio)\n- quantity, unit, unitCost: opcionales\n\nEl total = quantity × unitCost se calcula en el servidor."
           }
         },
         {
-          "name": "Agregar renglón adicional",
+          "name": "Actualizar renglón",
           "request": {
-            "method": "POST",
+            "method": "PATCH",
             "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/items", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests","{{requestId}}","items"] },
-            "body": { "mode": "raw", "raw": "{\n  \"workerId\": null,\n  \"description\": \"BROCHA DE 4 PULGADAS\",\n  \"quantity\": 6,\n  \"unit\": \"PZA\",\n  \"unitCost\": 45.00\n}", "options": { "raw": { "language": "json" } } },
-            "description": "Ejemplo con workerId: null (articulo no asignado a trabajador especifico)."
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/items/{{itemId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","requests","{{requestId}}","items","{{itemId}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"workerId\": \"{{workerId}}\",\n  \"description\": \"PINTURA VINILICA BLANCA EN GALON — ACTUALIZADA\",\n  \"quantity\": 5,\n  \"unit\": \"GAL\",\n  \"unitCost\": 190.00\n}", "options": { "raw": { "language": "json" } } },
+            "description": "Actualiza un renglón existente. Funciona en estado BORRADOR y EMITIDA.\n\n{{itemId}} se guarda automáticamente al agregar un renglón o al crear la solicitud."
           }
         },
         {
@@ -334,46 +395,8 @@
           "request": {
             "method": "DELETE",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/items/{{itemId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests","{{requestId}}","items","{{itemId}}"] },
-            "description": "Solo funciona en estado BORRADOR. {{itemId}} se guarda al agregar un renglón."
-          }
-        },
-        {
-          "name": "Actualizar borrador",
-          "request": {
-            "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests","{{requestId}}"] },
-            "body": { "mode": "raw", "raw": "{\n  \"supplierId\": \"{{supplierId}}\",\n  \"destination\": \"Destino actualizado — area de mantenimiento\",\n  \"authorizer\": \"Ing. Carlos Mendoza\"\n}", "options": { "raw": { "language": "json" } } },
-            "description": "Solo funciona en estado BORRADOR."
-          }
-        },
-        {
-          "name": "Emitir solicitud",
-          "event": [{ "listen": "test", "script": { "exec": [
-            "const json = pm.response.json();",
-            "if (json.data) {",
-            "    pm.test('Estado EMITIDA', () => pm.expect(json.data.status).to.eql('EMITIDA'));",
-            "    pm.test('Folio asignado', () => pm.expect(json.data.folio).to.be.a('number'));",
-            "    console.log('Solicitud emitida!');",
-            "    console.log('Folio:', json.data.folioFormatted);",
-            "    console.log('Renglones:', json.data.items.length);",
-            "}"
-          ]}}],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/issue", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests","{{requestId}}","issue"] },
-            "description": "Valida la solicitud y asigna un folio único consecutivo.\n\nRequisitos:\n- Estado BORRADOR\n- Al menos 1 renglón\n- Proveedor activo\n\nUna vez emitida no se puede modificar."
-          }
-        },
-        {
-          "name": "Descargar PDF",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/pdf", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests","{{requestId}}","pdf"] },
-            "description": "Genera el PDF del pedido institucional en tamaño carta.\n\nEn Postman: la respuesta llega como application/pdf. Haz clic en Save Response → Save to a file.\n\nSolo funciona en estado EMITIDA."
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/items/{{itemId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","requests","{{requestId}}","items","{{itemId}}"] },
+            "description": "Elimina un renglón. {{itemId}} se guarda al agregar o crear renglones."
           }
         },
         {
@@ -389,9 +412,67 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/cancel", "host": ["{{baseUrl}}"], "path": ["api", "v1","requests","{{requestId}}","cancel"] },
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/cancel", "host": ["{{baseUrl}}"], "path": ["api","v1","requests","{{requestId}}","cancel"] },
             "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Proveedor no disponible en la fecha requerida\"\n}", "options": { "raw": { "language": "json" } } },
-            "description": "Cancela la solicitud. El motivo es obligatorio.\n\nEl folio NO se reutiliza aunque la solicitud esté cancelada (trazabilidad)."
+            "description": "Cancela la solicitud. El motivo es obligatorio.\n\nEl folio NO se reutiliza (trazabilidad). La solicitud pasa a la papelera."
+          }
+        },
+        {
+          "name": "Restaurar solicitud",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.data) {",
+            "    pm.test('Estado EMITIDA', () => pm.expect(json.data.status).to.eql('EMITIDA'));",
+            "    console.log('Restaurada. Folio:', json.data.folioFormatted);",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/restore", "host": ["{{baseUrl}}"], "path": ["api","v1","requests","{{requestId}}","restore"] },
+            "description": "Restaura una solicitud CANCELADA al estado EMITIDA. Solo ADMIN."
+          }
+        },
+        {
+          "name": "Eliminar solicitud permanentemente",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","requests","{{requestId}}"] },
+            "description": "Elimina permanentemente una solicitud CANCELADA. Solo ADMIN.\n⚠️ Acción irreversible."
+          }
+        },
+        {
+          "name": "Vaciar papelera (todas las canceladas)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/trash/all", "host": ["{{baseUrl}}"], "path": ["api","v1","requests","trash","all"] },
+            "description": "Elimina permanentemente TODAS las solicitudes canceladas. Solo ADMIN.\n⚠️ Acción irreversible — no hay confirmación adicional."
+          }
+        },
+        {
+          "name": "Historial de documentos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/requests/{{requestId}}/documents", "host": ["{{baseUrl}}"], "path": ["api","v1","requests","{{requestId}}","documents"] },
+            "description": "Lista los documentos PDF generados para esta solicitud, ordenados por fecha descendente.\nCada entrada tiene: id, templateVersion, fileSizeBytes, checksum, generatedAt."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Configuración",
+      "description": "Configuración de empresa. No requiere autenticación.",
+      "item": [
+        {
+          "name": "Obtener configuración",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/settings", "host": ["{{baseUrl}}"], "path": ["api","v1","settings"] },
+            "description": "Retorna la configuración pública de la empresa: nombre, dirección, RFC, teléfono, extensión y lista de autorizadores.\n\nNo requiere token — datos no sensibles usados por el frontend para generar PDFs."
           }
         }
       ]
@@ -405,18 +486,20 @@
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v1/audit-events?page=0&size=50", "host": ["{{baseUrl}}"], "path": ["api", "v1","audit-events"],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/audit-events?page=0&size=50",
+              "host": ["{{baseUrl}}"], "path": ["api","v1","audit-events"],
               "query": [
-                { "key": "actorId",    "value": "{{userId}}",     "disabled": true, "description": "UUID del usuario que realizó la acción. Usa {{userId}}." },
-                { "key": "action",     "value": "REQUEST_ISSUED", "disabled": true, "description": "Valores: USER_CREATED | USER_DEACTIVATED | SUPPLIER_CREATED | WORKER_CREATED | REQUEST_ISSUED | REQUEST_CANCELLED" },
-                { "key": "entityType", "value": "Request",        "disabled": true, "description": "Valores: User | Supplier | Worker | Request" },
+                { "key": "actorId",    "value": "{{userId}}",     "disabled": true, "description": "UUID del usuario que realizó la acción." },
+                { "key": "action",     "value": "REQUEST_ISSUED", "disabled": true, "description": "USER_CREATED | USER_DEACTIVATED | SUPPLIER_CREATED | WORKER_CREATED | REQUEST_ISSUED | REQUEST_CANCELLED" },
+                { "key": "entityType", "value": "Request",        "disabled": true, "description": "User | Supplier | Worker | Request" },
                 { "key": "from",       "value": "2024-01-01T00:00:00Z", "disabled": true },
                 { "key": "to",         "value": "2026-12-31T23:59:59Z", "disabled": true },
                 { "key": "page",       "value": "0" },
                 { "key": "size",       "value": "50" }
               ]
             },
-            "description": "Resultados en orden descendente (mas reciente primero). La bitácora es de solo lectura."
+            "description": "Resultados en orden descendente (más reciente primero). La bitácora es de solo lectura."
           }
         }
       ]

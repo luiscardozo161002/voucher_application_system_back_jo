@@ -129,7 +129,7 @@ public class DataSeeder implements ApplicationRunner {
     }
 
     private void seedRequests(User admin, Supplier supplier, Worker worker) {
-        requestService.createAndIssue(
+        requestService.create(
                 supplier.getId(), worker.getId(),
                 "Para que UNION SERVICIOS PROFESIONALES pueda suministrar papelería de oficina",
                 "Administrador del Sistema",
@@ -139,7 +139,7 @@ public class DataSeeder implements ApplicationRunner {
                         new RequestService.ItemData(worker.getId(), "Bolígrafos azules caja c/12", BigDecimal.valueOf(5),  "CAJA", BigDecimal.valueOf(45.00))
                 )
         );
-        requestService.createAndIssue(
+        requestService.create(
                 supplier.getId(), worker.getId(),
                 "Para que UNION SERVICIOS PROFESIONALES pueda suministrar material de limpieza",
                 "Administrador del Sistema",
@@ -149,7 +149,7 @@ public class DataSeeder implements ApplicationRunner {
                         new RequestService.ItemData(worker.getId(), "Jabón líquido 1L", BigDecimal.valueOf(6), "PZA", BigDecimal.valueOf(38.50))
                 )
         );
-        requestService.createAndIssue(
+        requestService.create(
                 supplier.getId(), worker.getId(),
                 "Para que UNION SERVICIOS PROFESIONALES pueda suministrar equipo de cómputo",
                 "Administrador del Sistema",

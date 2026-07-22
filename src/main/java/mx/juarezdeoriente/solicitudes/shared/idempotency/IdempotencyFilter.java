@@ -28,7 +28,7 @@ import java.util.UUID;
  * Implementa el patrón de idempotency keys para peticiones POST mutantes.
  *
  * Uso del cliente:
- *   POST /api/v1/requests/{id}/issue
+ *   POST /api/v1/requests
  *   Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
  *
  * Si la misma clave se envía dos veces, el servidor retorna la respuesta
@@ -98,8 +98,8 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         if (!"POST".equals(request.getMethod())) return true;
         String uri = request.getRequestURI();
-        // Solo aplica a endpoints que asignan recursos únicos irreversibles
-        return !uri.contains("/issue") && !uri.contains("/api/v1/requests");
+        // Solo aplica a la creación de solicitudes (asigna folio único irreversible)
+        return !uri.matches(".*/api/v1/requests/?$");
     }
 
     @Transactional

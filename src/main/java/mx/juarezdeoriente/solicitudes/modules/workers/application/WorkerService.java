@@ -6,6 +6,7 @@ import mx.juarezdeoriente.solicitudes.modules.workers.infrastructure.WorkerRepos
 import mx.juarezdeoriente.solicitudes.modules.workers.domain.WorkerType;
 import mx.juarezdeoriente.solicitudes.modules.workers.domain.Worker;
 
+
 import mx.juarezdeoriente.solicitudes.config.CacheConfig;
 import mx.juarezdeoriente.solicitudes.exception.NotFoundException;
 import mx.juarezdeoriente.solicitudes.shared.PageResult;
@@ -35,6 +36,10 @@ public class WorkerService {
     @CacheEvict(cacheNames = CacheConfig.WORKERS, allEntries = true)
     public Worker create(String companyCode, String employeeNumber,
                          String name, String phone, WorkerType workerType, UUID actorId) {
+        if (companyCode != null && !companyCode.isBlank() && employeeNumber != null && !employeeNumber.isBlank()) {
+            workerRepository.findByCompanyCodeAndEmployeeNumber(companyCode, employeeNumber)
+                .ifPresent(w -> { throw new DomainException("Ya existe un trabajador con empresa " + companyCode + " y número " + employeeNumber); });
+        }
         Worker worker = Worker.create(companyCode, employeeNumber, name, phone, workerType);
         Worker saved  = workerRepository.save(worker);
         eventPublisher.publishEvent(new WorkerEvents.Created(saved.getId(), saved.getName(), actorId));

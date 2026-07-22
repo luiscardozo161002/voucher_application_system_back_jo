@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public interface WorkerRepository extends JpaRepository<Worker, UUID> {
@@ -24,4 +25,6 @@ public interface WorkerRepository extends JpaRepository<Worker, UUID> {
                         @Param("active") Boolean active,
                         @Param("workerType") WorkerType workerType,
                         Pageable pageable);
+
+    Optional<Worker> findByCompanyCodeAndEmployeeNumber(String companyCode, String employeeNumber);
 }

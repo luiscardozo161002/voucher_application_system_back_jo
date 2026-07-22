@@ -39,38 +39,27 @@ public class RequestService {
         this.em                = em;
     }
 
-    public Request createDraft(UUID supplierId, UUID solicitanteId,
-                               String destination, String authorizer, UUID createdBy) {
-        Request request = Request.createDraft(supplierId, solicitanteId, destination, authorizer, createdBy);
-        return requestRepository.save(request);
-    }
-
     public record ItemData(UUID workerId, String description, BigDecimal quantity, String unit, BigDecimal unitCost) {}
 
-    public Request createAndIssue(UUID supplierId, UUID solicitanteId, String destination,
-                                  String authorizer, UUID createdBy, List<ItemData> items) {
-        Request request = Request.createDraft(supplierId, solicitanteId, destination, authorizer, createdBy);
+    public Request create(UUID supplierId, UUID solicitanteId, String destination,
+                          String authorizer, UUID createdBy, List<ItemData> items) {
+        long folio = nextFolio();
+        Request request = Request.create(supplierId, solicitanteId, destination, authorizer, createdBy, folio);
         for (int i = 0; i < items.size(); i++) {
             ItemData item = items.get(i);
             request.addItem(RequestItem.create(item.workerId(), item.description(),
                     item.quantity(), item.unit(), item.unitCost(), i + 1));
         }
-        long folio = nextFolio();
-        request.issue(folio);
-        Request issued = requestRepository.save(request);
-        eventPublisher.publishEvent(new RequestEvents.Issued(issued.getId(), issued.getFolio(),
-                issued.getSupplierId(), issued.getCreatedBy()));
-        return issued;
+        Request saved = requestRepository.save(request);
+        eventPublisher.publishEvent(new RequestEvents.Issued(saved.getId(), saved.getFolio(),
+                saved.getSupplierId(), saved.getCreatedBy()));
+        return saved;
     }
 
-    public Request updateRequest(UUID requestId, UUID supplierId,
+    public Request updateRequest(UUID requestId, UUID supplierId, UUID solicitanteId,
                                  String destination, String authorizer) {
         Request request = findById(requestId);
-        if (request.getStatus() == RequestStatus.BORRADOR) {
-            request.updateDraft(supplierId, destination, authorizer);
-        } else {
-            request.updateIssued(destination, authorizer);
-        }
+        request.update(supplierId, solicitanteId, destination, authorizer);
         return requestRepository.save(request);
     }
 
@@ -119,16 +108,6 @@ public class RequestService {
         Request request = findById(requestId);
         request.updateItem(itemId, workerId, description, quantity, unit, unitCost);
         return requestRepository.save(request);
-    }
-
-    public Request issue(UUID requestId) {
-        Request request = findById(requestId);
-        long folio      = nextFolio();
-        request.issue(folio);
-        Request saved = requestRepository.save(request);
-        eventPublisher.publishEvent(new RequestEvents.Issued(saved.getId(), saved.getFolio(),
-                saved.getSupplierId(), saved.getCreatedBy()));
-        return saved;
     }
 
     public Request cancel(UUID requestId, String reason, UUID cancelledBy) {
