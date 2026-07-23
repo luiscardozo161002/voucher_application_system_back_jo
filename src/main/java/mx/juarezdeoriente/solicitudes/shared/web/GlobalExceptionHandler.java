@@ -5,6 +5,7 @@ import io.jsonwebtoken.MalformedJwtException;
 import mx.juarezdeoriente.solicitudes.exception.ConflictException;
 import mx.juarezdeoriente.solicitudes.exception.DomainException;
 import mx.juarezdeoriente.solicitudes.exception.NotFoundException;
+import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,6 +134,21 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleMalformedJwt(MalformedJwtException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.error("El token de autenticacion es invalido. Inicia sesion nuevamente."));
+    }
+
+    // --- Errores de permisos de base de datos ---
+
+    @ExceptionHandler(InvalidDataAccessResourceUsageException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDbPermission(InvalidDataAccessResourceUsageException ex) {
+        String causa = ex.getMessage() != null ? ex.getMessage() : "";
+        if (causa.contains("permiso denegado") || causa.contains("permission denied")) {
+            log.warn("Operación bloqueada por permisos de BD: {}", causa);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("No tienes permiso para realizar esta acción."));
+        }
+        log.error("Error de acceso a base de datos", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("Ocurrio un error interno. Intenta de nuevo o contacta al administrador."));
     }
 
     // --- Concurrencia ---
