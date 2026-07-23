@@ -1,5 +1,5 @@
 # ── Etapa 1: compilar con Maven ────────────────────────────────────────────────
-FROM maven:3.9-eclipse-temurin-21-alpine AS build
+FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /app
 
 # Descargar dependencias primero (aprovechar caché de Docker)
@@ -11,7 +11,7 @@ COPY src ./src
 RUN mvn package -Dmaven.test.skip=true -q
 
 # ── Etapa 2: imagen de ejecución mínima ────────────────────────────────────────
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
 COPY --from=build /app/target/*.jar app.jar
