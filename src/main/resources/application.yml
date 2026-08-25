@@ -88,7 +88,7 @@ app:
     max-page-size: 1000
 
   rate-limit:
-    enabled: true
+    enabled: ${RATE_LIMIT_ENABLED:true}
 
   timezone: America/Mexico_City
 
