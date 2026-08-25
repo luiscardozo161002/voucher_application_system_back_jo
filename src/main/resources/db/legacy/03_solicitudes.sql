@@ -705,5 +705,4 @@
   INSERT INTO requests (id,folio,status,supplier_id,destination,authorizer,created_by,created_at,issued_at) VALUES (gen_random_uuid(),703,'EMITIDA',COALESCE((SELECT id FROM suppliers WHERE code = 'CECOM' LIMIT 1),(SELECT id FROM suppliers ORDER BY created_at LIMIT 1)),'Solicitud migrada del sistema anterior',NULL,(SELECT id FROM users WHERE username = 'admin' LIMIT 1),'2026-06-18 14:26:09','2026-06-18 14:26:09') ON CONFLICT (folio) DO NOTHING;
 
 
--- Avanzar secuencia de folios mas alla del historico
-SELECT setval('folio_seq', GREATEST((SELECT COALESCE(MAX(folio),703) FROM requests), 703) + 1);
+-- folio_seq eliminada en V8 — el folio ahora se calcula en tiempo de ejecución

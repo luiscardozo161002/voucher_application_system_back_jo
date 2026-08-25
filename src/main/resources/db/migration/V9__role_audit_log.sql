@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS role_audit_log (
     id          BIGSERIAL PRIMARY KEY,
-    user_id     BIGINT       NOT NULL,
+    user_id     UUID         NOT NULL,
     role        VARCHAR(50)  NOT NULL,
     action      VARCHAR(10)  NOT NULL, -- 'INSERT' | 'DELETE'
     changed_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
@@ -11,10 +11,10 @@ CREATE OR REPLACE FUNCTION fn_role_audit() RETURNS TRIGGER AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
         INSERT INTO role_audit_log(user_id, role, action)
-        VALUES (NEW.user_id, NEW.roles, 'INSERT');
+        VALUES (NEW.user_id, NEW.role, 'INSERT');
     ELSIF TG_OP = 'DELETE' THEN
         INSERT INTO role_audit_log(user_id, role, action)
-        VALUES (OLD.user_id, OLD.roles, 'DELETE');
+        VALUES (OLD.user_id, OLD.role, 'DELETE');
     END IF;
     RETURN NULL;
 END;
