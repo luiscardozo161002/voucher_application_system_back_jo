@@ -152,6 +152,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <mainClass>mx.juarezdeoriente.solicitudes.SolicitudesApplication</mainClass>
                     <!-- Activa el perfil 'local' al ejecutar mvn spring-boot:run -->
                     <profiles>
                         <profile>local</profile>

@@ -25,7 +25,7 @@ import java.sql.Connection;
  * - Si hay 10 o menos, ejecuta los tres scripts SQL del classpath.
  */
 @Component
-@Profile("!test")
+@Profile("local")
 @Order(2)
 public class LegacyDataSeeder implements ApplicationRunner {
 
