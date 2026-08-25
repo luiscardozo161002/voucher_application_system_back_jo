@@ -87,9 +87,6 @@ app:
   pagination:
     max-page-size: 1000
 
-  rate-limit:
-    enabled: ${RATE_LIMIT_ENABLED:false}
-
   timezone: America/Mexico_City
 
   # Datos institucionales — aparecen en el PDF del pedido
