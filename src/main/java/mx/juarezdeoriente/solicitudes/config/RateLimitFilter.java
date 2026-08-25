@@ -82,7 +82,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
         return uri.startsWith("/actuator")
                 || uri.startsWith("/swagger-ui")
                 || uri.startsWith("/api-docs")
-                || "GET".equals(request.getMethod());
+                || "GET".equals(request.getMethod())
+                || "OPTIONS".equals(request.getMethod());
     }
 
     private Bucket buildBucket(int tokens, Duration period) {
